@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Login - RD1-Construction</title>
+    <link rel="stylesheet" href="./Content/css/login.css">
+</head>
+<body>
+    <div class="login-container">
+        <h2>Sign In</h2>
+        <form id="login-form">
+            <label for="username">Username:</label>
+            <input type="text" id="username" required>
+
+            <div>
+                <a href="register.html" id="register-link">Register</a>
+            </div>
+
+            <label for="password">Password:</label>
+            <input type="password" id="password" required>
+
+            <div>
+                <a href="/forgot-password.html" id="forgot-link">Forgot Password?</a>
+            </div>
+
+            <button type="submit">Login</button>
+        </form>
+        <p id="login-error" style="color: red; display: none;">Invalid credentials</p>
+    </div>
+
+    <script src="./Content/js/login.js"></script>
+</body>
+</html>

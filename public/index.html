@@ -1,0 +1,59 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>RD1 - Timesheet</title>
+    <link rel="stylesheet" href="./Content/css/style.css">
+    <script>
+        if (!sessionStorage.getItem('username')) {
+            window.location.href = 'login.html';
+        }
+    </script>
+</head>
+<body>
+    <div class="container">
+        <aside class="sidebar-wrapper">
+            <div class="sidebar">
+                <div class="sidebar-top">
+                    <h2>Project Entry</h2>
+
+                    <div class="category-header">
+                        <label for="category-list">Category List:</label>
+                        <div class="category-actions">
+                            <button id="add-category-btn">+</button>
+                            <button id="remove-category-btn">−</button>
+                        </div>
+                    </div>
+                    <select id="category-list"></select>
+
+                    <label for="hours">Hours (Per day):</label>
+                    <select id="hours"></select>
+
+                    <label for="entry-start">Start Date:</label>
+                    <input type="date" id="entry-start">
+
+                    <label for="entry-end">End Date:</label>
+                    <input type="date" id="entry-end">
+
+                    <button id="upload-entry">Upload Entry</button>
+                    <button id="remove-entry">Remove Entry</button>
+                </div>
+            </div>
+
+            <div class="sidebar-bottom-buttons">
+                <button id="submit-week">Submit Week</button>
+                <button id="logout-btn">Logout</button>
+            </div>
+        </aside>
+
+        <main class="calendar-container">
+            <div id="calendar">
+                <!-- month-navigation and table will be injected here -->
+            </div>
+        </main>
+    </div>
+
+    <script src="https://unpkg.com/sheetjs-style/dist/xlsx.full.min.js"></script>
+    <script src="./Content/js/script.js"></script>
+</body>
+</html>

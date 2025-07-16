@@ -1,0 +1,27 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36301.6 d17.14
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{54A90642-561A-4BB1-A94E-469ADEE60C69}") = "rd1-project-tracker", "rd1-project-tracker.esproj", "{0C56BC54-A4DE-999C-5542-1752D85CC351}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{0C56BC54-A4DE-999C-5542-1752D85CC351}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0C56BC54-A4DE-999C-5542-1752D85CC351}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0C56BC54-A4DE-999C-5542-1752D85CC351}.Debug|Any CPU.Deploy.0 = Debug|Any CPU
+		{0C56BC54-A4DE-999C-5542-1752D85CC351}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0C56BC54-A4DE-999C-5542-1752D85CC351}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0C56BC54-A4DE-999C-5542-1752D85CC351}.Release|Any CPU.Deploy.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {B2FB0EBD-9A55-45F8-AC39-D300124B7BCE}
+	EndGlobalSection
+EndGlobal

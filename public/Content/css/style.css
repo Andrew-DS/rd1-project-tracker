@@ -1,0 +1,363 @@
+﻿body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background-color: #f7f7f7;
+}
+
+.container {
+    display: flex;
+    height: 100vh;
+}
+
+/* Sidebar */
+.sidebar {
+    width: 250px;
+    height: 89vh;
+    padding: 0;
+    background-color: #003278;
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+    color: silver;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.sidebar-top {
+    padding: 20px;
+}
+
+.sidebar h2 {
+    margin-top: 0;
+}
+
+.sidebar label,
+.sidebar select,
+.sidebar input,
+.sidebar button {
+    display: block;
+    margin-bottom: 15px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.sidebar-bottom-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin-top: auto;
+}
+
+    .sidebar-bottom-buttons button {
+        width: 100%;
+        padding: 14px;
+        font-weight: bold;
+        border: none;
+        border-radius: 0;
+        color: white;
+        cursor: pointer;
+    }
+
+#submit-week {
+    background-color: #007bff;
+}
+
+    #submit-week:hover {
+        background-color: #0056b3;
+    }
+
+.submitted-week {
+    background-color: #cbd5e0;
+    pointer-events: none;
+    opacity: 0.6;
+}
+
+#logout-btn {
+    background-color: silver;
+}
+
+    #logout-btn:hover {
+        background-color: #78706E;
+    }
+
+/* Category Actions */
+.category-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+    .category-header label {
+        font-weight: bold;
+    }
+
+.category-actions {
+    display: flex;
+    gap: 10px;
+}
+
+    .category-actions button {
+        padding: 0;
+        font-size: 1.25rem;
+        background: transparent;
+        border: none;
+        color: #A5ACAF;
+        cursor: pointer;
+        transition: transform 0.1s ease, color 0.2s ease;
+    }
+
+        .category-actions button:hover,
+        .category-actions button:focus {
+            color: #8f949a;
+            transform: scale(1.2);
+            outline: none;
+        }
+
+        .category-actions button:active {
+            color: #6d7278;
+            transform: scale(1.1);
+        }
+
+/* Calendar Container */
+.calendar-container {
+    display: flex;
+    width: 100%;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    background-image: url("../images/att-stadium-dallas-cowboys-color-robert-hayton.jpg");
+    background-repeat: no-repeat;
+    background-size: cover;
+}
+
+#calendar {
+    width: 80%;
+    max-width: 1150px;
+    height: 85%;
+    border: 1px solid #ccc;
+    background: white;
+    padding: 0 20px 35px 20px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    opacity: 0.95;
+    position: relative; /* ✅ Important for overlay positioning */
+    overflow: hidden; /* ✅ Prevent overflow from outline box */
+}
+
+/* Table Layout */
+table {
+    width: 100%;
+    height: 90%;
+}
+
+tr.month-header {
+    height: 1rem;
+}
+
+tr.month-days {
+    height: 5rem;
+}
+
+/* Day Cells */
+td {
+    position: relative; /* ✅ Needed for icon/bar stacking */
+    text-align: center;
+    vertical-align: top;
+    width: 14.28%;
+    max-width: 100px;
+    overflow-y: auto;
+    outline: 1px solid silver;
+    z-index: 1;
+}
+
+    td.outside-month {
+        background-color: #f0f0f0;
+        color: #999;
+    }
+
+#today {
+    outline: solid 2px navy;
+    z-index: 1;
+}
+
+.calendar-day:hover {
+    background-color: lightblue;
+    cursor: pointer;
+}
+
+.calendar-day.selected {
+    outline: 3px solid orange;
+    z-index: 1;
+}
+
+/* Calendar Icons */
+.calendar-icon {
+    position: absolute;
+    z-index: 3;
+    font-weight: bold;
+    pointer-events: auto;
+    cursor: pointer;
+}
+
+    .calendar-icon.payday {
+        right: 60%;
+        top: 2px;
+        text-align: right;
+        color: #85bb65;
+        font-size: 0.85rem;
+    }
+
+    .calendar-icon.deadline {
+        right: 60%;
+        top: 2px;
+        color: crimson;
+        font-size: 0.75rem;
+    }
+
+/* Calendar Bars */
+.calendar-bar {
+    display: block;
+    width: 100%;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    background-color: #cce5ff;
+    padding: 2px 4px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    color: white;
+    box-sizing: border-box;
+    position: relative;
+    z-index: 2;
+}
+
+    .calendar-bar.selected {
+        outline: 2px solid red;
+        z-index: 2;
+    }
+
+    .calendar-bar:hover::after {
+        content: attr(data-fulltext);
+        position: absolute;
+        top: -1.8rem;
+        left: 0;
+        white-space: nowrap;
+        background: #333;
+        color: #fff;
+        padding: 4px 8px;
+        font-size: 0.75rem;
+        border-radius: 4px;
+        z-index: 10;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+        opacity: 1;
+        pointer-events: none;
+        transition: opacity 0.2s;
+    }
+
+    .calendar-bar::after {
+        opacity: 0;
+    }
+
+.week-highlight-hover {
+    background-color: rgba(0, 128, 255, 0.2);
+    transition: background-color 0.2s ease;
+}
+
+/* PTO Styling */
+.pto-top {
+    position: absolute;
+    top: 2px;
+    right: 4px;
+    font-size: 0.5rem;
+    color: #555;
+    background-color: #f0f0f0;
+    padding: 1px 4px;
+    border-radius: 4px;
+    z-index: 1;
+}
+
+.pto-day {
+    background-image: repeating-linear-gradient(45deg, rgba(75, 0, 130, 0.3), rgba(75, 0, 130, 0.3) 1px, transparent 1px, transparent 6px);
+    outline: 2px solid rgba(75, 0, 130, 0.3);
+}
+
+.pto-hours {
+    position: absolute;
+    top: 2px;
+    left: 4px;
+    font-size: 0.65rem;
+    font-weight: bold;
+    color: #800080;
+    background-color: transparent;
+    padding: 1px 4px;
+    z-index: 1;
+}
+
+/* Calendar Navigation */
+.month-navigation {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 5rem;
+    margin: 0 auto 1rem auto;
+    height: 2.5rem;
+    max-width: fit-content;
+    position: relative;
+}
+
+.month-header {
+    margin: 0;
+    font-size: 1.5rem;
+    white-space: nowrap;
+    z-index: 1;
+    position: relative;
+}
+
+.nav-arrow {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background-color: transparent;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    width: 2rem;
+    height: 2rem;
+    z-index: 2;
+}
+
+    .nav-arrow.left {
+        left: 0;
+    }
+
+    .nav-arrow.right {
+        right: 0;
+    }
+
+/* Week Outline Box */
+.week-outline {
+    position: absolute;
+    border: 2px solid #007bff;
+    z-index: 3;
+    pointer-events: none;
+    box-sizing: border-box;
+}
+
+.week-outline-container {
+    position: relative;
+}
+
+/* Week Selector Message */
+.week-select-message {
+    height: 1.5rem;
+    text-align: center;
+    font-weight: bold;
+    color: #4a4a4a;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+    z-index: 1;
+}
+
+    .week-select-message.visible {
+        opacity: 1;
+    }
