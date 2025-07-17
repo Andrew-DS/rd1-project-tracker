@@ -3,6 +3,26 @@
   "WorkspaceRootPath": "C:\\Users\\Andrew\\source\\repos\\rd1-project-tracker\\",
   "Documents": [
     {
+      "AbsoluteMoniker": "D:0:0:{0C56BC54-A4DE-999C-5542-1752D85CC351}|rd1-project-tracker.esproj|c:\\users\\andrew\\source\\repos\\rd1-project-tracker\\config\\dbconfig.js||{14D17961-FE51-464D-9111-C4AF11D7D99A}",
+      "RelativeMoniker": "D:0:0:{0C56BC54-A4DE-999C-5542-1752D85CC351}|rd1-project-tracker.esproj|solutionrelative:config\\dbconfig.js||{14D17961-FE51-464D-9111-C4AF11D7D99A}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{0C56BC54-A4DE-999C-5542-1752D85CC351}|rd1-project-tracker.esproj|c:\\users\\andrew\\source\\repos\\rd1-project-tracker\\public\\content\\js\\register.js||{14D17961-FE51-464D-9111-C4AF11D7D99A}",
+      "RelativeMoniker": "D:0:0:{0C56BC54-A4DE-999C-5542-1752D85CC351}|rd1-project-tracker.esproj|solutionrelative:public\\content\\js\\register.js||{14D17961-FE51-464D-9111-C4AF11D7D99A}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{0C56BC54-A4DE-999C-5542-1752D85CC351}|rd1-project-tracker.esproj|c:\\users\\andrew\\source\\repos\\rd1-project-tracker\\public\\content\\js\\login.js||{14D17961-FE51-464D-9111-C4AF11D7D99A}",
+      "RelativeMoniker": "D:0:0:{0C56BC54-A4DE-999C-5542-1752D85CC351}|rd1-project-tracker.esproj|solutionrelative:public\\content\\js\\login.js||{14D17961-FE51-464D-9111-C4AF11D7D99A}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{0C56BC54-A4DE-999C-5542-1752D85CC351}|rd1-project-tracker.esproj|c:\\users\\andrew\\source\\repos\\rd1-project-tracker\\public\\content\\js\\forgot-password.js||{14D17961-FE51-464D-9111-C4AF11D7D99A}",
+      "RelativeMoniker": "D:0:0:{0C56BC54-A4DE-999C-5542-1752D85CC351}|rd1-project-tracker.esproj|solutionrelative:public\\content\\js\\forgot-password.js||{14D17961-FE51-464D-9111-C4AF11D7D99A}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{0C56BC54-A4DE-999C-5542-1752D85CC351}|rd1-project-tracker.esproj|c:\\users\\andrew\\source\\repos\\rd1-project-tracker\\start-local.bat||{3B902123-F8A7-4915-9F01-361F908088D0}",
+      "RelativeMoniker": "D:0:0:{0C56BC54-A4DE-999C-5542-1752D85CC351}|rd1-project-tracker.esproj|solutionrelative:start-local.bat||{3B902123-F8A7-4915-9F01-361F908088D0}"
+    },
+    {
       "AbsoluteMoniker": "D:0:0:{0C56BC54-A4DE-999C-5542-1752D85CC351}|rd1-project-tracker.esproj|c:\\users\\andrew\\source\\repos\\rd1-project-tracker\\public\\content\\js\\script.js||{14D17961-FE51-464D-9111-C4AF11D7D99A}",
       "RelativeMoniker": "D:0:0:{0C56BC54-A4DE-999C-5542-1752D85CC351}|rd1-project-tracker.esproj|solutionrelative:public\\content\\js\\script.js||{14D17961-FE51-464D-9111-C4AF11D7D99A}"
     },
@@ -18,11 +38,76 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 1,
+          "SelectedChildIndex": 0,
           "Children": [
             {
               "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "dbConfig.js",
+              "DocumentMoniker": "C:\\Users\\Andrew\\source\\repos\\rd1-project-tracker\\config\\dbConfig.js",
+              "RelativeDocumentMoniker": "config\\dbConfig.js",
+              "ToolTip": "C:\\Users\\Andrew\\source\\repos\\rd1-project-tracker\\config\\dbConfig.js",
+              "RelativeToolTip": "config\\dbConfig.js",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAsAAAAYAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001646|",
+              "WhenOpened": "2025-07-17T02:33:04.5Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "start-local.bat",
+              "DocumentMoniker": "C:\\Users\\Andrew\\source\\repos\\rd1-project-tracker\\start-local.bat",
+              "RelativeDocumentMoniker": "start-local.bat",
+              "ToolTip": "C:\\Users\\Andrew\\source\\repos\\rd1-project-tracker\\start-local.bat",
+              "RelativeToolTip": "start-local.bat",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAA0AAAAKAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000614|",
+              "WhenOpened": "2025-07-17T02:31:50.639Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "login.js",
+              "DocumentMoniker": "C:\\Users\\Andrew\\source\\repos\\rd1-project-tracker\\public\\Content\\js\\login.js",
+              "RelativeDocumentMoniker": "public\\Content\\js\\login.js",
+              "ToolTip": "C:\\Users\\Andrew\\source\\repos\\rd1-project-tracker\\public\\Content\\js\\login.js",
+              "RelativeToolTip": "public\\Content\\js\\login.js",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAwAAAAmAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001646|",
+              "WhenOpened": "2025-07-17T02:30:19.811Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "forgot-password.js",
+              "DocumentMoniker": "C:\\Users\\Andrew\\source\\repos\\rd1-project-tracker\\public\\Content\\js\\forgot-password.js",
+              "RelativeDocumentMoniker": "public\\Content\\js\\forgot-password.js",
+              "ToolTip": "C:\\Users\\Andrew\\source\\repos\\rd1-project-tracker\\public\\Content\\js\\forgot-password.js",
+              "RelativeToolTip": "public\\Content\\js\\forgot-password.js",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAuwA4AAAAmAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001646|",
+              "WhenOpened": "2025-07-17T02:30:11.945Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
               "DocumentIndex": 1,
+              "Title": "register.js",
+              "DocumentMoniker": "C:\\Users\\Andrew\\source\\repos\\rd1-project-tracker\\public\\Content\\js\\register.js",
+              "RelativeDocumentMoniker": "public\\Content\\js\\register.js",
+              "ToolTip": "C:\\Users\\Andrew\\source\\repos\\rd1-project-tracker\\public\\Content\\js\\register.js",
+              "RelativeToolTip": "public\\Content\\js\\register.js",
+              "ViewState": "AgIAABkAAAAAAAAAAAAuwCcAAAAqAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001646|",
+              "WhenOpened": "2025-07-17T02:26:27.357Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
               "Title": "style.css",
               "DocumentMoniker": "C:\\Users\\Andrew\\source\\repos\\rd1-project-tracker\\public\\Content\\css\\style.css",
               "RelativeDocumentMoniker": "public\\Content\\css\\style.css",
@@ -30,18 +115,17 @@
               "RelativeToolTip": "public\\Content\\css\\style.css",
               "ViewState": "AgIAAMMAAAAAAAAAAAAAANQAAAAbAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003000|",
-              "WhenOpened": "2025-07-16T11:50:09.892Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-07-16T11:50:09.892Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 0,
+              "DocumentIndex": 5,
               "Title": "script.js",
               "DocumentMoniker": "C:\\Users\\Andrew\\source\\repos\\rd1-project-tracker\\public\\Content\\js\\script.js",
               "RelativeDocumentMoniker": "public\\Content\\js\\script.js",
               "ToolTip": "C:\\Users\\Andrew\\source\\repos\\rd1-project-tracker\\public\\Content\\js\\script.js",
               "RelativeToolTip": "public\\Content\\js\\script.js",
-              "ViewState": "AgIAAEQAAAAAAAAAAAAawFUAAACBAAAAAAAAAA==",
+              "ViewState": "AgIAAOgDAAAAAAAAAAAuwAwEAAATAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001646|",
               "WhenOpened": "2025-07-15T11:46:36.997Z",
               "EditorCaption": ""
