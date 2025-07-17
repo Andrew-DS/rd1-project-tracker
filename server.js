@@ -114,7 +114,7 @@ app.post('/CheckUserExists', async (req, res) => {
         res.json({ exists: false });
     } catch (err) {
         console.error('CheckUserExists error:', err);
-        res.status(500).json({ error: 'Server error while checking user.' });
+        res.status(500).json({ error: err.message });
     }
 });
 
@@ -136,7 +136,7 @@ app.post('/Register', async (req, res) => {
         res.json({ success: true });
     } catch (err) {
         console.error('Registration error:', err);
-        res.status(500).json({ error: 'Registration failed' });
+        res.status(500).json({ error: err.message });
     }
 });
 
