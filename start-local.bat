@@ -11,4 +11,4 @@ REM Wait briefly to let the server start
 timeout /t 3 >nul
 
 REM Open login page in default browser
-start "" "http://localhost:3000/login.html"
+start "" "/login.html"

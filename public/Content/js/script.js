@@ -424,7 +424,7 @@ function attachCalendarDayListeners() {
     });
 }
 async function queryPTO(userId, visibleDate) {
-    return fetch(`http://localhost:3000/UserPTO/${encodeURIComponent(userId)}`)
+    return fetch(`/UserPTO/${encodeURIComponent(userId)}`)
         .then(res => res.json())
         .then(data => {
             ptoMap.clear();
@@ -473,7 +473,7 @@ async function queryPTO(userId, visibleDate) {
         });
 }
 function queryProjects() {
-    fetch('http://localhost:3000/Projects')
+    fetch('/Projects')
         .then(response => {
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
@@ -527,7 +527,7 @@ function getColorForProject(description) {
 }
 function queryEntries() {
     const userId = sessionStorage.getItem('username');
-    fetch(`http://localhost:3000/ProjectEntries/${encodeURIComponent(userId)}`)
+    fetch(`/ProjectEntries/${encodeURIComponent(userId)}`)
         .then(res => res.json())
         .then(data => {
             buildEntryDayMap(data);
@@ -545,7 +545,7 @@ function queryEntries() {
         });
 }
 function querySubmittedWeeks(userId) {
-    return fetch(`http://localhost:3000/SubmittedWeeks/${encodeURIComponent(userId)}`)
+    return fetch(`/SubmittedWeeks/${encodeURIComponent(userId)}`)
         .then(res => res.json())
         .then(data => {
             submittedWeeks = data || [];
@@ -739,7 +739,7 @@ function populateHoursDropdown() {
 function handleWeekSubmit(userId, startStr, endStr) {
     exportWeekToExcel(startStr, endStr);
 
-    fetch('http://localhost:3000/SubmitWeek', {
+    fetch('/SubmitWeek', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ UserID: userId, WeekStart: startStr, WeekEnd: endStr })
@@ -839,7 +839,7 @@ document.getElementById('upload-entry').addEventListener('click', () => {
 
         // Send them all in parallel
         Promise.all(requests.map(payload =>
-            fetch('http://localhost:3000/AddUserPTO', {
+            fetch('/AddUserPTO', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
@@ -869,7 +869,7 @@ document.getElementById('upload-entry').addEventListener('click', () => {
             UserID: userId
         };
 
-        fetch('http://localhost:3000/AddProjectEntry', {
+        fetch('/AddProjectEntry', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
@@ -905,7 +905,7 @@ document.getElementById('remove-entry').addEventListener('click', async () => {
         const description = selectedBar.getAttribute('data-fulltext');
 
         try {
-            const res = await fetch('http://localhost:3000/RemoveEntry', {
+            const res = await fetch('/RemoveEntry', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ Description: description, Date: dateStr })
@@ -948,7 +948,7 @@ document.getElementById('remove-entry').addEventListener('click', async () => {
         }
 
         try {
-            const res = await fetch('http://localhost:3000/DeleteUserPTO', {
+            const res = await fetch('/DeleteUserPTO', {
                 method: 'DELETE',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ UserID: userId, Date: dateStr })
@@ -989,7 +989,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             // Send to backend to store in database
-            fetch('http://localhost:3000/AddProject', {
+            fetch('/AddProject', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ Description: trimmed })
@@ -1034,7 +1034,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const confirmed = confirm(`Are you sure you want to permanently remove "${selected}"?`);
             if (!confirmed) return;
 
-            fetch(`http://localhost:3000/RemoveProject/${encodeURIComponent(selected)}`, {
+            fetch(`/RemoveProject/${encodeURIComponent(selected)}`, {
                 method: 'DELETE'
             })
                 .then(res => {

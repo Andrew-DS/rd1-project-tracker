@@ -1,9 +1,4 @@
-﻿// npx nodemon server.js
-// netstat -ano | findstr :3000 // if the server gets stuck running on port 3000
-// taskkill /PID <PID> /F       // replace <PID> with value in last column
-// npm install express bcrypt cors mssql
-
-const express = require('express');
+﻿const express = require('express');
 const bcrypt = require('bcrypt');
 const crypto = require('crypto');
 const cors = require('cors');
@@ -16,9 +11,22 @@ const config = require('./config/dbconfig.js');
 const path = require('path');
 app.use(express.static(path.join(__dirname, 'public')));
 
-const port = process.env.PORT || 3000;  // Use the environment variable PORT, fallback to 3000 for local development
+// Dynamically use the PORT provided by Azure, or default to 3000 for local development
+const port = process.env.PORT || 3000;  // Use Azure's dynamic port in production, fallback to 3000 locally
+
 app.listen(port, () => {
     console.log(`Server is running on port ${port}`);
+});
+
+// Health check route for Azure
+app.get('/health', (req, res) => {
+    res.status(200).send('Healthy');
+});
+
+// ========================== GET ROUTES ==========================
+
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'login.html'));
 });
 
 app.get('/Projects', async (req, res) => {
@@ -31,6 +39,7 @@ app.get('/Projects', async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
+
 app.get('/ProjectEntries/:userId', async (req, res) => {
     try {
         const userId = decodeURIComponent(req.params.userId);
@@ -47,6 +56,7 @@ app.get('/ProjectEntries/:userId', async (req, res) => {
         res.json([]);
     }
 });
+
 app.get('/UserPTO/:userId', async (req, res) => {
     try {
         const userId = decodeURIComponent(req.params.userId);
@@ -64,9 +74,7 @@ app.get('/UserPTO/:userId', async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'login.html'));
-});
+
 app.get('/SubmittedWeeks/:userId', async (req, res) => {
     try {
         const userId = decodeURIComponent(req.params.userId);
@@ -80,9 +88,8 @@ app.get('/SubmittedWeeks/:userId', async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
-app.get('/health', (req, res) => {
-    res.status(200).send('Healthy');
-});
+
+// ========================== POST ROUTES ==========================
 
 app.post('/Login', async (req, res) => {
     const { username, password } = req.body;
@@ -96,9 +103,8 @@ app.post('/Login', async (req, res) => {
         }
 
         const user = result.recordset[0];
-
-        // Ensure the database column is named 'Password' (or change this to match the actual column)
         const isMatch = await bcrypt.compare(password, user.Password);
+
         if (!user.Password) {
             return res.status(500).json({ success: false, error: 'Password not found for user.' });
         }
@@ -107,7 +113,6 @@ app.post('/Login', async (req, res) => {
             return res.status(401).json({ success: false, error: 'Invalid username or password.' });
         }
 
-        // Login successful
         res.json({ success: true, user: { username: user.Username, role: user.Role || 'username' } });
 
     } catch (err) {
@@ -115,75 +120,7 @@ app.post('/Login', async (req, res) => {
         res.status(500).json({ success: false, error: 'Server error' });
     }
 });
-app.post('/forgot-password', async (req, res) => {
-    const { email } = req.body;
 
-    if (!email) {
-        return res.status(400).json({ error: 'Email is required' });
-    }
-
-    try {
-        await sql.connect(config);
-
-        const findUser = await new sql.Request()
-            .input('email', sql.NVarChar, email)
-            .query('SELECT * FROM Users WHERE EmailAddress = @email');
-
-        if (findUser.recordset.length === 0) {
-            // Don't reveal whether the email exists — just respond
-            return res.json({ message: 'If your email exists, a reset link has been sent.' });
-        }
-
-        // Generate secure token and expiry (1 hour)
-        const token = crypto.randomBytes(32).toString('hex');
-        const expiry = new Date(Date.now() + 3600000); // 1 hour from now
-
-        await new sql.Request()
-            .input('email', sql.NVarChar, email)
-            .input('token', sql.NVarChar, token)
-            .input('expiry', sql.DateTime, expiry)
-            .query(`
-                UPDATE Users
-                SET ResetToken = @token, ResetTokenExpiry = @expiry
-                WHERE EmailAddress = @email
-            `);
-
-        // Placeholder: Email logic
-        console.log(`Send this reset link to ${email}: http://yourapp.com/reset-password?token=${token}`);
-
-        res.json({ message: 'If your email exists, a reset link has been sent.' });
-
-    } catch (err) {
-        console.error('Forgot password error:', err.message);
-        res.status(500).json({ error: 'Internal server error' });
-    }
-});
-app.post('/ResetPassword', async (req, res) => {
-    const { email, newPassword } = req.body;
-
-    if (!email || !newPassword) {
-        return res.status(400).json({ error: 'Email and new password are required.' });
-    }
-
-    try {
-        const hashedPassword = await bcrypt.hash(newPassword, 10);
-
-        await sql.connect(config);
-        const result = await new sql.Request()
-            .input('email', sql.NVarChar, email)
-            .input('password', sql.NVarChar, hashedPassword)
-            .query('UPDATE Users SET Password = @password WHERE EmailAddress = @email');
-
-        if (result.rowsAffected[0] === 0) {
-            return res.status(404).json({ error: 'User not found.' });
-        }
-
-        res.json({ success: true, message: 'Password reset successfully.' });
-    } catch (err) {
-        console.error('Reset password error:', err.message);
-        res.status(500).json({ error: 'An error occurred while resetting password.' });
-    }
-});
 app.post('/Register', async (req, res) => {
     const { username, password, email, firstName, lastName } = req.body;
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -207,27 +144,7 @@ app.post('/Register', async (req, res) => {
         res.status(500).json({ error: 'Registration failed' });
     }
 });
-app.post('/CheckUserExists', async (req, res) => {
-    const { username, email } = req.body;
 
-    try {
-        await sql.connect(config);
-        const result = await sql.query`
-            SELECT * FROM Users WHERE Username = ${username} OR EmailAddress = ${email}
-        `;
-
-        if (result.recordset.length > 0) {
-            const existingUser = result.recordset[0];
-            const conflict = (existingUser.Username === username) ? 'username' : 'email';
-            return res.json({ exists: true, conflict });
-        }
-
-        res.json({ exists: false });
-    } catch (err) {
-        console.error('CheckUserExists error:', err);
-        res.status(500).json({ error: 'Server error while checking user.' });
-    }
-});
 app.post('/AddProjectEntry', async (req, res) => {
     try {
         const { Description, Hours, StartDate, EndDate, UserID } = req.body;
@@ -254,25 +171,7 @@ app.post('/AddProjectEntry', async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
-app.post('/RemoveEntry', async (req, res) => {
-    const { Description, Date } = req.body;
 
-    try {
-        await sql.connect(config);
-        await new sql.Request()
-            .input('Description', sql.NVarChar, Description)
-            .input('Date', sql.Date, Date)
-            .query(`
-                DELETE FROM ProjectEntries
-                WHERE Description = @Description AND StartDate <= @Date AND EndDate >= @Date
-            `);
-
-        res.json({ success: true });
-    } catch (err) {
-        console.error('Remove entry error:', err);
-        res.status(500).json({ success: false, error: 'Failed to remove entry.' });
-    }
-});
 app.post('/AddUserPTO', async (req, res) => {
     try {
         const { UserID, Date, PTOaccrued, PTOsubmitted } = req.body;
@@ -295,6 +194,7 @@ app.post('/AddUserPTO', async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
+
 app.post('/SubmitWeek', async (req, res) => {
     const { UserID, WeekStart, WeekEnd } = req.body;
 
@@ -313,55 +213,28 @@ app.post('/SubmitWeek', async (req, res) => {
     }
 });
 
-app.post('/AddProject', async (req, res) => {
-    const { Description } = req.body;
+// ========================== DELETE ROUTES ==========================
 
-    if (!Description || typeof Description !== 'string' || !Description.trim()) {
-        return res.status(400).json({ success: false, error: 'Invalid category description.' });
-    }
+app.delete('/RemoveEntry', async (req, res) => {
+    const { Description, Date } = req.body;
 
     try {
         await sql.connect(config);
-
-        // Check if it already exists
-        const existsResult = await new sql.Request()
-            .input('desc', sql.NVarChar, Description)
-            .query('SELECT COUNT(*) AS count FROM Projects WHERE Description = @desc');
-
-        if (existsResult.recordset[0].count > 0) {
-            return res.status(400).json({ success: false, error: 'Category already exists.' });
-        }
-
-        // Insert into table
         await new sql.Request()
-            .input('desc', sql.NVarChar, Description)
-            .query('INSERT INTO Projects (Description) VALUES (@desc)');
+            .input('Description', sql.NVarChar, Description)
+            .input('Date', sql.Date, Date)
+            .query(`
+                DELETE FROM ProjectEntries
+                WHERE Description = @Description AND StartDate <= @Date AND EndDate >= @Date
+            `);
 
         res.json({ success: true });
     } catch (err) {
-        console.error('Insert project category error:', err.message);
-        res.status(500).json({ success: false, error: 'Database error' });
+        console.error('Remove entry error:', err);
+        res.status(500).json({ success: false, error: 'Failed to remove entry.' });
     }
 });
-app.delete('/RemoveProject/:description', async (req, res) => {
-    const description = decodeURIComponent(req.params.description);
 
-    if (!description || description.toLowerCase() === 'pto request') {
-        return res.status(400).json({ error: 'Cannot remove this category.' });
-    }
-
-    try {
-        await sql.connect(config);
-
-        await new sql.Request()
-            .input('desc', sql.NVarChar(255), description)
-            .query('DELETE FROM Projects WHERE Description = @desc');
-
-        res.json({ success: true });
-    } catch (err) {
-        res.status(500).json({ error: 'Failed to remove category.' });
-    }
-});
 app.delete('/DeleteUserPTO', async (req, res) => {
     const { UserID, Date } = req.body;
 
@@ -383,3 +256,8 @@ app.delete('/DeleteUserPTO', async (req, res) => {
         res.status(500).json({ error: 'Failed to delete PTO entry.' });
     }
 });
+
+// ========================== EXPORT ==========================
+
+// Export the app to allow Azure to start it
+module.exports = app;

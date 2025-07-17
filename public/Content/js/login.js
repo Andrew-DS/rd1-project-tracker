@@ -10,7 +10,7 @@
     }
 
     try {
-        const response = await fetch('http://localhost:3000/Login', {
+        const response = await fetch('/Login', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'

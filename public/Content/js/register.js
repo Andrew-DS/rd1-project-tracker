@@ -37,7 +37,7 @@
             }
 
             // Check for existing username/email
-            const checkRes = await fetch('http://localhost:3000/CheckUserExists', {
+            const checkRes = await fetch('/CheckUserExists', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ username, email })
@@ -50,7 +50,7 @@
             }
 
             try {
-                const res = await fetch('http://localhost:3000/Register', {
+                const res = await fetch('/Register', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ username, password, firstName, lastName, email })
@@ -63,7 +63,7 @@
                 }
 
                 // Auto-login
-                const loginRes = await fetch('http://localhost:3000/Login', {
+                const loginRes = await fetch('/Login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ username, password })
