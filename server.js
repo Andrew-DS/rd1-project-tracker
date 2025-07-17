@@ -121,6 +121,28 @@ app.post('/Login', async (req, res) => {
     }
 });
 
+app.post('/CheckUserExists', async (req, res) => {
+    const { username, email } = req.body;
+
+    try {
+        await sql.connect(config);
+        const result = await sql.query`
+            SELECT * FROM Users WHERE Username = ${username} OR EmailAddress = ${email}
+        `;
+
+        if (result.recordset.length > 0) {
+            const existingUser = result.recordset[0];
+            const conflict = (existingUser.Username === username) ? 'username' : 'email';
+            return res.json({ exists: true, conflict });
+        }
+
+        res.json({ exists: false });
+    } catch (err) {
+        console.error('CheckUserExists error:', err);
+        res.status(500).json({ error: 'Server error while checking user.' });
+    }
+});
+
 app.post('/Register', async (req, res) => {
     const { username, password, email, firstName, lastName } = req.body;
     const hashedPassword = await bcrypt.hash(password, 10);
