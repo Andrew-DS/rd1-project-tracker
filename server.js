@@ -16,8 +16,9 @@ const config = require('./config/dbconfig.js');
 const path = require('path');
 app.use(express.static(path.join(__dirname, 'public')));
 
-app.listen(3000, () => {
-    console.log('Server is running on http://localhost:3000');
+const port = process.env.PORT || 3000;  // Use the environment variable PORT, fallback to 3000 for local development
+app.listen(port, () => {
+    console.log(`Server is running on port ${port}`);
 });
 
 app.get('/Projects', async (req, res) => {
@@ -78,6 +79,9 @@ app.get('/SubmittedWeeks/:userId', async (req, res) => {
         console.error('SubmittedWeeks GET error:', err.message);
         res.status(500).json({ error: err.message });
     }
+});
+app.get('/health', (req, res) => {
+    res.status(200).send('Healthy');
 });
 
 app.post('/Login', async (req, res) => {
