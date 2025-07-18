@@ -790,15 +790,15 @@ async function queryPTO(userId, visibleDate) {
             while (current <= endDate) {
                 const dateStr = current.toISOString().split('T')[0];
                 const submitted = submittedMap.get(dateStr) || 0;
+                
+                balance += accrualRate;
 
-                // Store balance before today's submission
                 ptoMap.set(dateStr, {
                     accrued: parseFloat(balance.toFixed(2)),
                     submitted: submitted
                 });
 
-                // Update balance for tomorrow
-                balance = balance - submitted + accrualRate;
+                balance -= submitted;
                 current.setDate(current.getDate() + 1);
             }
         })
