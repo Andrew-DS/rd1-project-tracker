@@ -79,6 +79,17 @@ app.get('/SubmittedWeeks/:userId', async (req, res) => {
     }
 });
 
+app.get('/sql-status', async (req, res) => {
+    try {
+        await sql.connect(config);
+        const result = await sql.query`SELECT GETDATE() AS now`;
+        res.json({ success: true, result: result.recordset });
+    } catch (err) {
+        console.error('SQL Status check failed:', err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
 // ========================== POST ROUTES ==========================
 app.post('/Login', async (req, res) => {
     const { username, password } = req.body;
