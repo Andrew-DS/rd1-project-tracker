@@ -83,3 +83,24 @@
         .back-to-login a:hover {
             color: #0056b3;
         }
+
+.password-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+    .password-wrapper input[type="password"],
+    .password-wrapper input[type="text"] {
+        width: 100%;
+        padding-right: 2.5rem; /* make space for the icon */
+    }
+
+.toggle-password {
+    position: absolute;
+    right: 10px;
+    cursor: pointer;
+    font-size: 1.2rem;
+    color: #666;
+    user-select: none;
+}

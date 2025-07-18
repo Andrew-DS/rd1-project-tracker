@@ -16,6 +16,7 @@ const colorPalette = [
 let currentDate = new Date();
 let entryDayMap = new Map();
 let ptoMap = new Map();
+let holidayMap = new Map();
 
 let isSelectingWeek = false;
 let frozenWeek = false;
@@ -23,47 +24,11 @@ let submittedWeeks = [];
 
 const PAYDAY_INTERVAL = 14; // every 2 weeks
 const PAYDAY_ANCHOR = new Date(2025, 0, 3); // Jan 3, 2025
+const PTO_RATE = 80 / 365; // 2 weeks per year
 
 const paydaySet = new Set();
 const deadlineSet = new Set();
 
-function calculatePayPeriods(viewYear, viewMonth) {
-    paydaySet.clear();
-    deadlineSet.clear();
-
-    // Find the first Friday in 2025 that aligns with the July 18 payday cycle
-    let payday = new Date(2025, 0, 1); // Jan 1, 2025
-    while (payday.getDay() !== 5) { // find first Friday
-        payday.setDate(payday.getDate() + 1);
-    }
-
-    // Step through every 14 days until we hit or pass the anchor
-    while (payday < PAYDAY_ANCHOR) {
-        payday.setDate(payday.getDate() + PAYDAY_INTERVAL);
-    }
-
-    // Step back in 14-day intervals until before Jan 1, 2025
-    while (payday.getFullYear() === 2025 && payday > new Date(2025, 0, 1)) {
-        const test = new Date(payday);
-        test.setDate(test.getDate() - PAYDAY_INTERVAL);
-        if (test >= new Date(2025, 0, 1)) payday = test;
-        else break;
-    }
-
-    // Now payday is the first valid one in 2025 — generate forward
-    const endOfMonth = new Date(viewYear, viewMonth + 2, 0);
-    while (payday <= endOfMonth) {
-        const paydayStr = payday.toISOString().split('T')[0];
-        paydaySet.add(paydayStr);
-
-        const deadline = new Date(payday);
-        deadline.setDate(payday.getDate() - 3); // Tuesday of that week
-        const deadlineStr = deadline.toISOString().split('T')[0];
-        deadlineSet.add(deadlineStr);
-
-        payday.setDate(payday.getDate() + PAYDAY_INTERVAL);
-    }
-}
 function generateCalendar() {
     const calendar = document.getElementById('calendar');
     const month = currentDate.getMonth();
@@ -81,6 +46,7 @@ function generateCalendar() {
     ];
 
     calculatePayPeriods(year, month);
+    populateHolidayMap(year);
 
     let html = `
         <div id="week-select-message" class="week-select-message">Click any day to select a week for export. Press ESC to cancel.</div>
@@ -136,8 +102,15 @@ function generateCalendar() {
         const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(date).padStart(2, '0')}`;
 
         let tdClass = '';
+        let holidayHtml = '';
         if (isPtoDay(dateStr)) tdClass += ' pto-day';
         if (!isSelectingWeek) tdClass += ' calendar-day';
+
+        const holidayName = holidayMap.get(dateStr);
+        if (holidayName) {
+            tdClass += ' holiday-day';  // add class for styling
+            holidayHtml = '<div class="pto-hours">8h</div>';
+        }
 
         if (isWeekSubmitted(dateStr)) {
             tdClass += ' submitted-week';
@@ -155,7 +128,7 @@ function generateCalendar() {
             ptoHtml = `${submittedText}<div class="pto-top">PTO: ${adjustedAccrued}h</div>`;
         }
 
-        cellHtml += `${ptoHtml}<div class="day-number">${date}</div>`;
+        cellHtml += `${holidayHtml}${ptoHtml}<div class="day-number">${date}</div>`;
 
         if (entryDayMap.has(dateStr)) {
             entryDayMap.get(dateStr).forEach(entry => {
@@ -298,9 +271,6 @@ function generateCalendar() {
                 const today = new Date();
                 today.setHours(0, 0, 0, 0);
 
-                console.log('Today:', today.toISOString());
-                console.log('Deadline:', deadline.toISOString());
-
                 if (today > deadline) {
                     alert('You can no longer submit this week. The submission deadline has passed.');
                     return;
@@ -323,22 +293,92 @@ function generateCalendar() {
     attachMonthSwitchHandlers();
     attachCalendarDayListeners();
 }
-function parseEntryRange(entry) {
-    const start = new Date(entry.StartDate);
-    const end = new Date(entry.EndDate);
-    return { start, end };
+function calculatePayPeriods(viewYear, viewMonth) {
+    paydaySet.clear();
+    deadlineSet.clear();
+
+    // Find the first Friday in 2025 that aligns with the July 18 payday cycle
+    let payday = new Date(2025, 0, 1); // Jan 1, 2025
+    while (payday.getDay() !== 5) { // find first Friday
+        payday.setDate(payday.getDate() + 1);
+    }
+
+    // Step through every 14 days until we hit or pass the anchor
+    while (payday < PAYDAY_ANCHOR) {
+        payday.setDate(payday.getDate() + PAYDAY_INTERVAL);
+    }
+
+    // Step back in 14-day intervals until before Jan 1, 2025
+    while (payday.getFullYear() === 2025 && payday > new Date(2025, 0, 1)) {
+        const test = new Date(payday);
+        test.setDate(test.getDate() - PAYDAY_INTERVAL);
+        if (test >= new Date(2025, 0, 1)) payday = test;
+        else break;
+    }
+
+    // Now payday is the first valid one in 2025 — generate forward
+    const endOfMonth = new Date(viewYear, viewMonth + 2, 0);
+    while (payday <= endOfMonth) {
+        const paydayStr = payday.toISOString().split('T')[0];
+        paydaySet.add(paydayStr);
+
+        const deadline = new Date(payday);
+        deadline.setDate(payday.getDate() - 3); // Tuesday of that week
+        const deadlineStr = deadline.toISOString().split('T')[0];
+        deadlineSet.add(deadlineStr);
+
+        payday.setDate(payday.getDate() + PAYDAY_INTERVAL);
+    }
+}
+function populateHolidayMap(year) {
+    holidayMap.clear();
+
+    // Fixed-date holidays
+    holidayMap.set(`${year}-01-01`, 'New Year\'s Day');
+    holidayMap.set(`${year}-06-19`, 'Juneteenth');
+    holidayMap.set(`${year}-07-04`, 'Independence Day');
+    holidayMap.set(`${year}-12-24`, 'Christmas Eve');
+    holidayMap.set(`${year}-12-25`, 'Christmas Day');
+
+    // Dynamic-date holidays
+    holidayMap.set(getMemorialDay(year), 'Memorial Day');
+    holidayMap.set(getLaborDay(year), 'Labor Day');
+    holidayMap.set(getThanksgiving(year), 'Thanksgiving Day');
+    holidayMap.set(getThanksgivingFriday(year), 'Day After Thanksgiving');
+}
+function getMemorialDay(year) {
+    const date = new Date(year, 4, 31); // May 31
+    while (date.getDay() !== 1) date.setDate(date.getDate() - 1); // last Monday
+    return date.toISOString().split('T')[0];
+}
+function getLaborDay(year) {
+    const date = new Date(year, 8, 1); // Sep 1
+    while (date.getDay() !== 1) date.setDate(date.getDate() + 1); // first Monday
+    return date.toISOString().split('T')[0];
+}
+function getThanksgiving(year) {
+    const date = new Date(year, 10, 1); // Nov 1
+    let count = 0;
+    while (true) {
+        if (date.getDay() === 4) count++; // Thursday
+        if (count === 4) break;
+        date.setDate(date.getDate() + 1);
+    }
+    return date.toISOString().split('T')[0];
+}
+function getThanksgivingFriday(year) {
+    const thanksgiving = new Date(getThanksgiving(year));
+    thanksgiving.setDate(thanksgiving.getDate() + 1);
+    return thanksgiving.toISOString().split('T')[0];
 }
 function isPtoDay(dateStr) {
     let ptoDay = ptoMap.has(dateStr) && parseFloat(ptoMap.get(dateStr).submitted) > 0;
     return ptoDay;
 }
-function isWeekSubmitted(dateStr) {
-    const date = new Date(dateStr);
-    return submittedWeeks.some(({ WeekStart, WeekEnd }) => {
-        const start = new Date(WeekStart);
-        const end = new Date(WeekEnd);
-        return date >= start && date <= end;
-    });
+function parseEntryRange(entry) {
+    const start = new Date(entry.StartDate);
+    const end = new Date(entry.EndDate);
+    return { start, end };
 }
 function buildEntryDayMap(entries) {
     entryDayMap.clear();
@@ -423,55 +463,6 @@ function attachCalendarDayListeners() {
         });
     });
 }
-async function queryPTO(userId, visibleDate) {
-    return fetch(`/UserPTO/${encodeURIComponent(userId)}`)
-        .then(res => res.json())
-        .then(data => {
-            ptoMap.clear();
-
-            const accrualRate = 0.3287; // 120h / 365d
-            const startDate = new Date(new Date().getFullYear(), 0, 1); // Jan 1st
-
-            const visibleMonth = visibleDate.getMonth();
-            const visibleYear = visibleDate.getFullYear();
-            const endDate = new Date(visibleYear, visibleMonth + 1, 0); // last day of visible month
-
-            // Build a lookup of submitted PTO days from SQL
-            const submittedMap = new Map();
-            data.forEach(row => {
-                const dateStr = row.Date.split('T')[0];
-                submittedMap.set(dateStr, parseFloat(row.PTOsubmitted));
-            });
-
-            // Get starting accrued value from SQL (first row) or default to 0
-            let balance = data.length > 0 ? parseFloat(data[0].PTOaccrued) || 0 : 0;
-
-            const current = new Date(startDate);
-            while (current <= endDate) {
-                const dateStr = current.toISOString().split('T')[0];
-                const submitted = submittedMap.get(dateStr) || 0;
-
-                // Store balance before today's submission
-                ptoMap.set(dateStr, {
-                    accrued: parseFloat(balance.toFixed(2)),
-                    submitted: submitted
-                });
-
-                // Update balance for tomorrow
-                balance = balance - submitted + accrualRate;
-                current.setDate(current.getDate() + 1);
-            }
-        })
-        .catch(err => {
-            console.error('PTO Upload error:', err);
-
-            if (err.message.includes('Violation of UNIQUE KEY')) {
-                alert('You’ve already submitted PTO for one or more of these days.');
-            } else {
-                alert('Failed to upload PTO requests.');
-            }
-        });
-}
 function queryProjects() {
     fetch('/Projects')
         .then(response => {
@@ -544,132 +535,6 @@ function queryEntries() {
             alert('Could not load project entries.');
         });
 }
-function querySubmittedWeeks(userId) {
-    return fetch(`/SubmittedWeeks/${encodeURIComponent(userId)}`)
-        .then(res => res.json())
-        .then(data => {
-            submittedWeeks = data || [];
-        })
-        .catch(err => {
-            console.error('Failed to load submitted weeks:', err);
-        });
-}
-function exportWeekToExcel(startStr, endStr) {
-    const startDate = new Date(startStr + 'T00:00:00');
-    const endDate = new Date(endStr + 'T00:00:00');
-    const aoa = [
-        ['Date', 'Description', 'Hours', 'PTO_Submitted', 'PTO_Accrued']
-    ];
-
-    const current = new Date(startDate);
-    const userName = sessionStorage.getItem('username');
-
-    while (current <= endDate) {
-        const dateStr = current.toISOString().split('T')[0];
-        const entries = entryDayMap.get(dateStr) || [];
-        const accrued = ptoMap.get(dateStr)?.accrued || 0;
-        const submitted = ptoMap.get(dateStr)?.submitted || 0;
-
-        if (entries.length > 0) {
-            entries.forEach(entry => {
-                aoa.push([
-                    dateStr,
-                    entry.Description,
-                    entry.Description !== 'PTO Request' ? entry.Hours || '' : '',
-                    entry.Description === 'PTO Request' ? submitted : '',
-                    accrued
-                ]);
-            });
-        } else if (submitted > 0) {
-            aoa.push([
-                dateStr,
-                'PTO Request',
-                '',
-                submitted,
-                accrued
-            ]);
-        }
-
-        current.setDate(current.getDate() + 1);
-    }
-
-    // --- Totals Section ---
-    let totalHours = 0;
-    let totalPTO = 0;
-    const projectTotals = new Map();
-
-    for (let i = 1; i < aoa.length; i++) {
-        const row = aoa[i];
-        const project = row[1];
-        const hours = parseFloat(row[2]) || 0;
-        const ptoSubmitted = parseFloat(row[3]) || 0;
-
-        if (project === 'PTO Request') {
-            totalPTO += ptoSubmitted;
-            continue;
-        }
-
-        totalHours += hours;
-
-        if (!projectTotals.has(project)) projectTotals.set(project, 0);
-        projectTotals.set(project, projectTotals.get(project) + hours);
-    }
-
-    aoa.push([]);
-    aoa.push(['Project Totals']);
-    projectTotals.forEach((hours, project) => {
-        aoa.push([project, '', hours.toFixed(2)]);
-    });
-
-    aoa.push([]);
-    aoa.push(['', 'Total Hours:', totalHours.toFixed(2)]);
-    aoa.push(['', 'Total PTO Submitted:', totalPTO.toFixed(2)]);
-    aoa.push([]);
-    aoa.push(['', '', '', 'Submitted By:', userName]);
-
-    const worksheet = XLSX.utils.aoa_to_sheet(aoa);
-
-    // Styling
-    const range = XLSX.utils.decode_range(worksheet['!ref']);
-    for (let R = range.s.r; R <= range.e.r; ++R) {
-        for (let C = range.s.c; C <= range.e.c; ++C) {
-            const cellRef = XLSX.utils.encode_cell({ r: R, c: C });
-            const cell = worksheet[cellRef];
-            if (!cell) continue;
-
-            const isHeader = R === 0;
-            const isTotal = aoa[R]?.[0] === 'Project Totals' || aoa[R]?.[1]?.includes('Total');
-
-            cell.s = {
-                border: {
-                    top: { style: "thin", color: { rgb: "000000" } },
-                    bottom: { style: "thin", color: { rgb: "000000" } },
-                    left: { style: "thin", color: { rgb: "000000" } },
-                    right: { style: "thin", color: { rgb: "000000" } }
-                },
-                alignment: { horizontal: "center", vertical: "center" },
-                font: {
-                    name: "Calibri",
-                    sz: isHeader ? 12 : 11,
-                    bold: isHeader || isTotal
-                }
-            };
-        }
-    }
-
-    worksheet['!cols'] = [
-        { wch: 12 },  // Date
-        { wch: 30 },  // Description
-        { wch: 12 },  // Hours
-        { wch: 15 },  // PTO_Submitted
-        { wch: 20 }   // PTO_Accrued
-    ];
-
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Week Summary');
-    const filename = `PTO_Week_${startDate.toISOString().split('T')[0]}.xlsx`;
-    XLSX.writeFile(workbook, filename);
-}
 function highlightWeekFromCell(cell) {
     const clickedDate = new Date(cell.getAttribute('data-date'));
     const startOfWeek = new Date(clickedDate);
@@ -722,10 +587,6 @@ function highlightPreviousTwoWeeks(endDateStr) {
 
     calendar.appendChild(outline);
 }
-function clearHighlightedWeek() {
-    const box = document.getElementById('active-week-outline');
-    if (box) box.remove();
-}
 function populateHoursDropdown() {
     const hoursSelect = document.getElementById('hours');
     hoursSelect.innerHTML = '';
@@ -735,6 +596,14 @@ function populateHoursDropdown() {
         opt.textContent = i;
         hoursSelect.appendChild(opt);
     }
+}
+function isWeekSubmitted(dateStr) {
+    const date = new Date(dateStr);
+    return submittedWeeks.some(({ WeekStart, WeekEnd }) => {
+        const start = new Date(WeekStart);
+        const end = new Date(WeekEnd);
+        return date >= start && date <= end;
+    });
 }
 function handleWeekSubmit(userId, startStr, endStr) {
     exportWeekToExcel(startStr, endStr);
@@ -755,6 +624,211 @@ function handleWeekSubmit(userId, startStr, endStr) {
             alert('Failed to mark the week as submitted.');
         });
 }
+function clearHighlightedWeek() {
+    const box = document.getElementById('active-week-outline');
+    if (box) box.remove();
+}
+function exportWeekToExcel(startStr, endStr) {
+    const startDate = new Date(startStr + 'T00:00:00');
+    const endDate = new Date(endStr + 'T00:00:00');
+    const aoa = [
+        ['Date', 'Description', 'Hours', 'PTO_Submitted', 'PTO_Accrued']
+    ];
+
+    const current = new Date(startDate);
+    const userName = sessionStorage.getItem('username');
+
+    while (current <= endDate) {
+        const dateStr = current.toISOString().split('T')[0];
+        const entries = entryDayMap.get(dateStr) || [];
+        const accrued = ptoMap.get(dateStr)?.accrued || 0;
+        const submitted = ptoMap.get(dateStr)?.submitted || 0;
+
+        if (entries.length > 0) {
+            entries.forEach(entry => {
+                aoa.push([
+                    dateStr,
+                    entry.Description,
+                    entry.Description !== 'PTO Request' ? entry.Hours || '' : '',
+                    entry.Description === 'PTO Request' ? submitted : '',
+                    accrued
+                ]);
+            });
+        } else if (submitted > 0) {
+            aoa.push([
+                dateStr,
+                'PTO Request',
+                '',
+                submitted,
+                accrued
+            ]);
+        } else if (holidayMap.has(dateStr)) {
+            aoa.push([
+                dateStr,
+                'Holiday',
+                '',     // no hours
+                '',     // no PTO
+                accrued
+            ]);
+        }
+
+        current.setDate(current.getDate() + 1);
+    }
+
+    // --- Totals Section ---
+    let totalHours = 0;
+    let totalPTO = 0;
+    let totalHoliday = 0;
+    const projectTotals = new Map();
+
+    for (let i = 1; i < aoa.length; i++) {
+        const row = aoa[i];
+        const project = row[1];
+        const hours = parseFloat(row[2]) || 0;
+        const ptoSubmitted = parseFloat(row[3]) || 0;
+
+        if (project === 'PTO Request') {
+            totalPTO += ptoSubmitted;
+            continue;
+        }
+
+        if (!projectTotals.has(project)) projectTotals.set(project, 0);
+        projectTotals.set(project, projectTotals.get(project) + hours);
+
+        if (holidayMap.has(row[0])) {
+            totalHoliday += 8;
+        }
+
+        totalHours += hours;
+    }
+
+    aoa.push([]);
+    aoa.push(['Project Totals']);
+
+    const totalSubmitted = totalHours + totalPTO + totalHoliday;
+
+    projectTotals.forEach((hours, project) => {
+        aoa.push([project, '', hours.toFixed(2)]);
+    });
+
+    aoa.push([]);
+    aoa.push(['', 'Total Hours:', totalHours.toFixed(2)]);
+    if (totalHoliday > 0) {
+        aoa.push(['', 'Total Holiday Hours:', totalHoliday.toFixed(2)]);
+    }
+    aoa.push(['', 'Total PTO Submitted:', totalPTO.toFixed(2)]);
+    aoa.push(['', 'Total Submitted Hours:', totalSubmitted.toFixed(2), 'Submitted By:', userName]);
+
+    const worksheet = XLSX.utils.aoa_to_sheet(aoa);
+
+    // Styling
+    const range = XLSX.utils.decode_range(worksheet['!ref']);
+    for (let R = range.s.r; R <= range.e.r; ++R) {
+        for (let C = range.s.c; C <= range.e.c; ++C) {
+            const cellRef = XLSX.utils.encode_cell({ r: R, c: C });
+            const cell = worksheet[cellRef];
+            if (!cell) continue;
+
+            const isHeader = R === 0;
+            const isTotal = aoa[R]?.[0] === 'Project Totals' || aoa[R]?.[1]?.includes('Total');
+
+            cell.s = {
+                border: {
+                    top: { style: "thin", color: { rgb: "000000" } },
+                    bottom: { style: "thin", color: { rgb: "000000" } },
+                    left: { style: "thin", color: { rgb: "000000" } },
+                    right: { style: "thin", color: { rgb: "000000" } }
+                },
+                alignment: { horizontal: "center", vertical: "center" },
+                font: {
+                    name: "Calibri",
+                    sz: isHeader ? 12 : 11,
+                    bold: isHeader || isTotal
+                }
+            };
+        }
+    }
+
+    worksheet['!cols'] = [
+        { wch: 12 },  // Date
+        { wch: 30 },  // Description
+        { wch: 12 },  // Hours
+        { wch: 15 },  // PTO_Submitted
+        { wch: 20 }   // PTO_Accrued
+    ];
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Week Summary');
+    const filename = `PTO_Week_${startDate.toISOString().split('T')[0]}_${userName}.xlsx`;
+    XLSX.writeFile(workbook, filename);
+}
+
+async function queryPTO(userId, visibleDate) {
+    return fetch(`/UserPTO/${encodeURIComponent(userId)}`)
+        .then(res => res.json())
+        .then(data => {
+            ptoMap.clear();
+
+            const accrualRate = PTO_RATE;
+            const startDate = new Date(new Date().getFullYear(), 0, 1); // Jan 1st
+
+            const visibleMonth = visibleDate.getMonth();
+            const visibleYear = visibleDate.getFullYear();
+            const endDate = new Date(visibleYear, visibleMonth + 1, 0); // last day of visible month
+
+            // Build a lookup of submitted PTO days from SQL
+            const submittedMap = new Map();
+            data.forEach(row => {
+                const dateStr = row.Date.split('T')[0];
+                submittedMap.set(dateStr, parseFloat(row.PTOsubmitted));
+            });
+
+            // Get starting accrued value from SQL (first row) or default to 0
+            let balance = data.length > 0 ? parseFloat(data[0].PTOaccrued) || 0 : 0;
+
+            const current = new Date(startDate);
+            while (current <= endDate) {
+                const dateStr = current.toISOString().split('T')[0];
+                const submitted = submittedMap.get(dateStr) || 0;
+
+                // Store balance before today's submission
+                ptoMap.set(dateStr, {
+                    accrued: parseFloat(balance.toFixed(2)),
+                    submitted: submitted
+                });
+
+                // Update balance for tomorrow
+                balance = balance - submitted + accrualRate;
+                current.setDate(current.getDate() + 1);
+            }
+        })
+        .catch(err => {
+            console.error('PTO Upload error:', err);
+
+            if (err.message.includes('Violation of UNIQUE KEY')) {
+                alert('You’ve already submitted PTO for one or more of these days.');
+            } else {
+                alert('Failed to upload PTO requests.');
+            }
+        });
+}
+async function querySubmittedWeeks(userId) {
+    return fetch(`/SubmittedWeeks/${encodeURIComponent(userId)}`)
+        .then(res => res.json())
+        .then(data => {
+            if (Array.isArray(data)) {
+                submittedWeeks = data;
+            } else {
+                console.error('SubmittedWeeks response not an array:', data);
+                submittedWeeks = [];
+            }
+        })
+        .catch(err => {
+            console.error('Failed to load submitted weeks:', err);
+            submittedWeeks = [];
+        });
+}
+
 document.getElementById('upload-entry').addEventListener('click', () => {
     const category = document.getElementById('category-list').value;
     const startDateInput = document.getElementById('entry-start');

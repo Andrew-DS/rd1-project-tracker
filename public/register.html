@@ -19,10 +19,13 @@
             <input type="email" id="email" required>
 
             <label for="username">Username:</label>
-            <input type="text" id="username" required readonly>
+            <input type="text" id="username" name="new-username" required autocomplete="off">
 
             <label for="password">Password:</label>
-            <input type="password" id="password" required>
+            <div class="password-wrapper">
+                <input type="password" id="password" required>
+                <span class="toggle-password" id="toggle-password">&#128065;</span>
+            </div>
 
             <button type="submit">Register</button>
         </form>

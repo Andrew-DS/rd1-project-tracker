@@ -1,12 +1,8 @@
-﻿const config = {
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  server: process.env.DB_SERVER,
-  database: process.env.DB_NAME,
-  options: {
-    encrypt: true,
-    trustServerCertificate: false
-  }
-};
+const env = process.env.NODE_ENV || 'development';
+
+const config =
+  env === 'production'
+    ? require('./prod.dbconfig')
+    : require('./dev.dbconfig');
 
 module.exports = config;

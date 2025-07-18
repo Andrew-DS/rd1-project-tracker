@@ -86,3 +86,11 @@
         console.error('register-form not found in the DOM.');
     }
 });
+document.getElementById('toggle-password').addEventListener('click', () => {
+    const pwd = document.getElementById('password');
+    const toggle = document.getElementById('toggle-password');
+
+    const isVisible = pwd.type === 'text';
+    pwd.type = isVisible ? 'password' : 'text';
+    toggle.textContent = isVisible ? '👁️' : '🙈'; // optional: change icon
+});

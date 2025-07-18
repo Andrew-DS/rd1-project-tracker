@@ -23,7 +23,6 @@
         if (response.ok && data.success) {
             sessionStorage.setItem('username', data.user.username);
             sessionStorage.setItem('role', data.user.role || 'user');
-            console.log('Logged in as:', data.user.username);
             window.location.href = 'index.html';
         } else {
             alert(data.error || 'Login failed.');
@@ -32,4 +31,12 @@
         console.error('Login error:', err);
         alert('An error occurred. Please try again.');
     }
+});
+document.getElementById('toggle-password').addEventListener('click', () => {
+    const pwd = document.getElementById('password');
+    const toggle = document.getElementById('toggle-password');
+
+    const isVisible = pwd.type === 'text';
+    pwd.type = isVisible ? 'password' : 'text';
+    toggle.textContent = isVisible ? '👁️' : '🙈'; // optional: change icon
 });
