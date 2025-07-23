@@ -841,14 +841,9 @@ async function queryPTO(userId, visibleDate) {
             while (current <= endDate) {
                 const dateStr = current.toISOString().split('T')[0];
                 const submitted = submittedMap.get(dateStr) || 0;
-                
+
                 balance += accrualRate;
 
-<<<<<<< HEAD
-                balance += accrualRate;
-
-=======
->>>>>>> f72d919a166c0cbd260f5e818ad2432e52552381
                 ptoMap.set(dateStr, {
                     accrued: parseFloat(balance.toFixed(2)),
                     submitted: submitted
