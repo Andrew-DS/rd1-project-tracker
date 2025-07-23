@@ -22,6 +22,8 @@ let isSelectingWeek = false;
 let frozenWeek = false;
 let submittedWeeks = [];
 
+let swipeCooldown = false;
+
 const PAYDAY_INTERVAL = 14; // every 2 weeks
 const PAYDAY_ANCHOR = new Date(2025, 0, 3); // Jan 3, 2025
 const PTO_RATE = 80 / 365; // 2 weeks per year
@@ -30,7 +32,15 @@ const paydaySet = new Set();
 const deadlineSet = new Set();
 
 function generateCalendar() {
-    const calendar = document.getElementById('calendar');
+    const isMobile = window.innerWidth <= 768;
+    const calendar = isMobile
+        ? document.getElementById('calendar-mobile')
+        : document.getElementById('calendar');
+
+    if (!calendar) return;
+
+    calendar.innerHTML = '';
+
     const month = currentDate.getMonth();
     const year = currentDate.getFullYear();
 
@@ -292,6 +302,10 @@ function generateCalendar() {
 
     attachMonthSwitchHandlers();
     attachCalendarDayListeners();
+
+    if (isMobile) {
+        enableSwipeNavigation(calendar);
+    }
 }
 function calculatePayPeriods(viewYear, viewMonth) {
     paydaySet.clear();
@@ -394,15 +408,8 @@ function buildEntryDayMap(entries) {
     });
 }
 function attachMonthSwitchHandlers() {
-    document.getElementById('prev-month').addEventListener('click', () => {
-        currentDate.setMonth(currentDate.getMonth() - 1);
-        queryEntries();
-    });
-
-    document.getElementById('next-month').addEventListener('click', () => {
-        currentDate.setMonth(currentDate.getMonth() + 1);
-        queryEntries();
-    });
+    document.getElementById('prev-month').addEventListener('click', goToPreviousMonth);
+    document.getElementById('next-month').addEventListener('click', goToNextMonth);
 }
 function attachCalendarDayListeners() {
     document.querySelectorAll('.calendar-day').forEach(cell => {
@@ -477,30 +484,33 @@ function queryProjects() {
                 throw new Error('Expected an array but got something else.');
             }
 
-            const list = document.getElementById('category-list');
-            list.innerHTML = '';
+            const dropdowns = document.querySelectorAll('#category-list');
 
-            // Always add PTO Request first
-            const ptoOption = document.createElement('option');
-            ptoOption.value = 'PTO Request';
-            ptoOption.textContent = 'PTO Request';
-            list.appendChild(ptoOption);
+            dropdowns.forEach(list => {
+                list.innerHTML = '';
 
-            data.forEach(project => {
-                const option = document.createElement('option');
-                option.textContent = project.Description;
-                option.value = project.Description;
-                list.appendChild(option);
+                // Always add PTO Request first
+                const ptoOption = document.createElement('option');
+                ptoOption.value = 'PTO Request';
+                ptoOption.textContent = 'PTO Request';
+                list.appendChild(ptoOption);
 
-                // Assign a consistent color if not already assigned
-                if (!projectColorMap.has(project.Description)) {
-                    projectColorMap.set(project.Description, getColorForProject(project.Description));
-                }
+                data.forEach(project => {
+                    const option = document.createElement('option');
+                    option.textContent = project.Description;
+                    option.value = project.Description;
+                    list.appendChild(option);
+
+                    // Assign a consistent color if not already assigned
+                    if (!projectColorMap.has(project.Description)) {
+                        projectColorMap.set(project.Description, getColorForProject(project.Description));
+                    }
+                });
             });
 
             // Ensure PTO Request always has a consistent color
             if (!projectColorMap.has('PTO Request')) {
-                projectColorMap.set('PTO Request', '#6a1b9a'); // purple
+                projectColorMap.set('PTO Request', '#6a1b9a');
             }
         })
         .catch(error => {
@@ -588,14 +598,16 @@ function highlightPreviousTwoWeeks(endDateStr) {
     calendar.appendChild(outline);
 }
 function populateHoursDropdown() {
-    const hoursSelect = document.getElementById('hours');
-    hoursSelect.innerHTML = '';
-    for (let i = 1; i <= 12; i++) {
-        const opt = document.createElement('option');
-        opt.value = i;
-        opt.textContent = i;
-        hoursSelect.appendChild(opt);
-    }
+    const hoursDropdowns = document.querySelectorAll('#hours');
+    hoursDropdowns.forEach(hoursSelect => {
+        hoursSelect.innerHTML = '';
+        for (let i = 1; i <= 12; i++) {
+            const opt = document.createElement('option');
+            opt.value = i;
+            opt.textContent = i;
+            hoursSelect.appendChild(opt);
+        }
+    });
 }
 function isWeekSubmitted(dateStr) {
     const date = new Date(dateStr);
@@ -627,6 +639,45 @@ function handleWeekSubmit(userId, startStr, endStr) {
 function clearHighlightedWeek() {
     const box = document.getElementById('active-week-outline');
     if (box) box.remove();
+}
+function enableSwipeNavigation(calendar) {
+    let touchStartX = 0;
+
+    calendar.addEventListener('touchstart', (e) => {
+        touchStartX = e.touches[0].clientX;
+    });
+
+    calendar.addEventListener('touchend', (e) => {
+        const touchEndX = e.changedTouches[0].clientX;
+        const deltaX = touchEndX - touchStartX;
+
+        if (Math.abs(deltaX) > 50 && !swipeCooldown) {
+            swipeCooldown = true;
+
+            if (deltaX < 0) {
+                goToNextMonth();
+            } else {
+                goToPreviousMonth();
+            }
+
+            // prevent rapid fire
+            setTimeout(() => {
+                swipeCooldown = false;
+            }, 400); // adjust delay as needed
+        }
+    });
+}
+function goToNextMonth() {
+    const newDate = new Date(currentDate);
+    newDate.setMonth(newDate.getMonth() + 1);
+    currentDate = newDate;
+    queryEntries();
+}
+function goToPreviousMonth() {
+    const newDate = new Date(currentDate);
+    newDate.setMonth(newDate.getMonth() - 1);
+    currentDate = newDate;
+    queryEntries();
 }
 function exportWeekToExcel(startStr, endStr) {
     const startDate = new Date(startStr + 'T00:00:00');
@@ -791,14 +842,14 @@ async function queryPTO(userId, visibleDate) {
                 const dateStr = current.toISOString().split('T')[0];
                 const submitted = submittedMap.get(dateStr) || 0;
 
-                // Store balance before today's submission
+                balance += accrualRate;
+
                 ptoMap.set(dateStr, {
                     accrued: parseFloat(balance.toFixed(2)),
                     submitted: submitted
                 });
 
-                // Update balance for tomorrow
-                balance = balance - submitted + accrualRate;
+                balance -= submitted;
                 current.setDate(current.getDate() + 1);
             }
         })

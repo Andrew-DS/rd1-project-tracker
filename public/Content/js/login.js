@@ -23,7 +23,9 @@
         if (response.ok && data.success) {
             sessionStorage.setItem('username', data.user.username);
             sessionStorage.setItem('role', data.user.role || 'user');
-            window.location.href = 'index.html';
+            setTimeout(() => {
+                window.location.href = 'index.html';
+            }, 100); // let sessionStorage flush
         } else {
             alert(data.error || 'Login failed.');
         }

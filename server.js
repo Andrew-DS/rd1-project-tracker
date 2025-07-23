@@ -106,7 +106,7 @@ app.post('/Login', async (req, res) => {
 
         res.json({ success: true, user: { username: user.Username, role: user.Role || 'username' } });
     } catch (err) {
-        console.error('Login error:', err);
+        console.error('Login error:', err.stack || err);
         res.status(500).json({ success: false, error: 'Server error' });
     }
 });

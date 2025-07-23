@@ -1,14 +1,21 @@
-﻿body {
+﻿* {
+    box-sizing: border-box;
+}
+
+html, body {
     margin: 0;
     padding: 0;
+    min-height: 100dvh;
+    width: 100%;
+    overflow-x: hidden;
     font-family: 'Segoe UI', sans-serif;
     background: linear-gradient(to bottom right, #003278, #a5acaf);
-    height: 100vh;
     display: flex;
     justify-content: center;
     align-items: center;
 }
 
+/* Desktop Default */
 .login-container {
     background-color: white;
     padding: 2.5rem 2rem;
@@ -46,6 +53,7 @@
         border: 1px solid #aaa;
         border-radius: 6px;
         outline: none;
+        width: 100%;
     }
 
     .login-container input:focus {
@@ -63,6 +71,7 @@
         border-radius: 6px;
         cursor: pointer;
         transition: background-color 0.3s ease;
+        width: 100%;
     }
 
         .login-container button[type="submit"]:hover {
@@ -93,7 +102,7 @@
     .password-wrapper input[type="password"],
     .password-wrapper input[type="text"] {
         width: 100%;
-        padding-right: 2.5rem; /* make space for the icon */
+        padding-right: 2.5rem;
     }
 
 .toggle-password {
@@ -103,4 +112,59 @@
     font-size: 1.2rem;
     color: #666;
     user-select: none;
+}
+
+/* Mobile Tweaks */
+@media (max-width: 768px) {
+    body {
+        flex-direction: column;
+        justify-content: flex-start;
+        align-items: center;
+    }
+
+    .login-container {
+        width: 100%;
+        max-width: 500px;
+        border-radius: 0;
+        box-shadow: none;
+        padding: 1rem;
+        margin-top: 2rem;
+        background: transparent;
+    }
+
+        .login-container h2 {
+            text-align: center;
+            color: white;
+        }
+
+        .login-container form {
+            gap: 0.75rem;
+        }
+
+        .login-container input[type="text"],
+        .login-container input[type="email"],
+        .login-container input[type="password"],
+        .login-container button[type="submit"] {
+            padding: 1rem;
+            font-size: 1rem;
+            border: none;
+            border-radius: 0;
+            width: 100%;
+        }
+
+    .back-to-login a {
+        color: white;
+        font-size: 0.9rem;
+        text-align: center;
+        display: block;
+    }
+
+    .toggle-password {
+        font-size: 1.3rem;
+        color: white;
+    }
+
+    .password-wrapper input {
+        padding-right: 3rem;
+    }
 }

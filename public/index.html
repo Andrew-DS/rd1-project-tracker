@@ -2,8 +2,10 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>RD1 - Timesheet</title>
     <link rel="stylesheet" href="./Content/css/style.css">
+    <link rel="icon" href="favicon.ico" type="image/x-icon">
     <script>
         if (!sessionStorage.getItem('username')) {
             window.location.href = 'login.html';
@@ -11,6 +13,48 @@
     </script>
 </head>
 <body>
+    <!-- Mobile top bar -->
+    <header class="top-bar">
+        <h1 class="app-title">Project Entry</h1>
+        <button id="menu-toggle" class="hamburger">☰</button>
+    </header>
+
+    <!-- Mobile dropdown menu -->
+    <nav id="mobile-menu" class="mobile-menu hidden">
+        <button id="logout-btn">Logout</button>
+    </nav>
+
+    <!-- Mobile entry section -->
+    <section class="entry-section">
+        <div class="submit-container">
+            <button id="submit-week">Submit Week</button>
+        </div>
+
+        <div class="category-header">
+            <label for="category-list">Category List:</label>
+            <div class="category-actions">
+                <button id="add-category-btn">+</button>
+                <button id="remove-category-btn">−</button>
+            </div>
+        </div>
+        <select id="category-list"></select>
+
+        <label for="hours">Hours (Per day):</label>
+        <select id="hours"></select>
+
+        <label for="entry-start">Start Date:</label>
+        <input type="date" id="entry-start">
+
+        <label for="entry-end">End Date:</label>
+        <input type="date" id="entry-end">
+
+        <button id="upload-entry">Upload Entry</button>
+        <button id="remove-entry">Remove Entry</button>
+    </section>
+    <main class="calendar-container mobile-calendar">
+        <div id="calendar-mobile"></div>
+    </main>
+    <!-- Desktop layout -->
     <div class="container">
         <aside class="sidebar-wrapper">
             <div class="sidebar">
@@ -38,11 +82,11 @@
                     <button id="upload-entry">Upload Entry</button>
                     <button id="remove-entry">Remove Entry</button>
                 </div>
-            </div>
 
-            <div class="sidebar-bottom-buttons">
-                <button id="submit-week">Submit Week</button>
-                <button id="logout-btn">Logout</button>
+                <div class="sidebar-bottom-buttons">
+                    <button id="submit-week">Submit Week</button>
+                    <button id="logout-btn">Logout</button>
+                </div>
             </div>
         </aside>
 
@@ -53,6 +97,7 @@
         </main>
     </div>
 
+    <!-- Scripts -->
     <script src="https://unpkg.com/sheetjs-style/dist/xlsx.full.min.js"></script>
     <script src="./Content/js/script.js"></script>
 </body>
