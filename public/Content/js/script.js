@@ -23,6 +23,12 @@ let frozenWeek = false;
 let submittedWeeks = [];
 
 let swipeCooldown = false;
+let touchStartX = null;
+let currentSwipeDirection = null;
+
+const glowLeft = document.getElementById('swipe-glow-left');
+const glowRight = document.getElementById('swipe-glow-right');
+const calendarMobile = document.getElementById('calendar-mobile');
 
 const PAYDAY_INTERVAL = 14; // every 2 weeks
 const PAYDAY_ANCHOR = new Date(2025, 0, 3); // Jan 3, 2025
@@ -304,6 +310,7 @@ function generateCalendar() {
     attachCalendarDayListeners();
 
     if (isMobile) {
+        updateGlowHeightToTable();
         enableSwipeNavigation(calendar);
     }
 }
@@ -679,6 +686,30 @@ function goToPreviousMonth() {
     currentDate = newDate;
     queryEntries();
 }
+function triggerGlow(glowElement) {
+    // Remove both glows, then apply the one for this direction
+    [glowLeft, glowRight].forEach(el => el.classList.remove('show'));
+    glowElement.classList.add('show');
+}
+function updateGlowHeightToTable() {
+    const calendar = document.getElementById('calendar-mobile');
+    const table = calendar?.querySelector('table');
+    const glowLeft = document.getElementById('swipe-glow-left');
+    const glowRight = document.getElementById('swipe-glow-right');
+
+    if (calendar && table && glowLeft && glowRight) {
+        const tableTop = table.offsetTop;
+
+        // Apply height and top positioning
+        const tableHeight = table.offsetHeight;
+
+        [glowLeft, glowRight].forEach(glow => {
+            glow.style.height = `${tableHeight}px`;
+            glow.style.top = `${tableTop}px`;
+            glow.style.transform = 'translateY(0%)';
+        });
+    }
+}
 function exportWeekToExcel(startStr, endStr) {
     const startDate = new Date(startStr + 'T00:00:00');
     const endDate = new Date(endStr + 'T00:00:00');
@@ -1014,11 +1045,30 @@ document.getElementById('upload-entry').addEventListener('click', () => {
     }
 });
 document.getElementById('submit-week').addEventListener('click', () => {
-    isSelectingWeek = true;
-    generateCalendar();
-
+    const isMobile = window.innerWidth <= 768;
+    const submitBtn = document.getElementById('submit-week');
+    const entrySection = document.querySelector('.entry-section');
     const message = document.getElementById('week-select-message');
-    if (message) message.classList.add('visible');
+
+    if (isMobile) {
+        isSelectingWeek = !isSelectingWeek;
+
+        if (isSelectingWeek) {
+            submitBtn.textContent = 'Cancel';
+            entrySection?.classList.add('hidden');
+            message?.classList.add('visible');
+        } else {
+            submitBtn.textContent = 'Submit Week';
+            entrySection?.classList.remove('hidden');
+            message?.classList.remove('visible');
+        }
+
+        generateCalendar();
+    } else {
+        isSelectingWeek = true;
+        generateCalendar();
+        message?.classList.add('visible');
+    }
 });
 document.getElementById('remove-entry').addEventListener('click', async () => {
     const selectedBar = document.querySelector('.calendar-bar.selected');
@@ -1216,6 +1266,45 @@ document.addEventListener('keydown', (e) => {
             generateCalendar();
         }
     }
+});
+document.addEventListener('DOMContentLoaded', () => {
+    const hamburger = document.querySelector('.hamburger');
+    const mobileMenu = document.querySelector('.mobile-menu');
+
+    if (hamburger && mobileMenu) {
+        hamburger.addEventListener('click', () => {
+            mobileMenu.classList.toggle('hidden');
+        });
+    }
+});
+calendarMobile?.addEventListener('touchstart', (e) => {
+    touchStartX = e.touches[0].clientX;
+    currentSwipeDirection = null;
+
+    // Remove any lingering glows
+    [glowLeft, glowRight].forEach(el => el.classList.remove('show'));
+});
+calendarMobile?.addEventListener('touchmove', (e) => {
+    if (touchStartX === null) return;
+
+    const moveX = e.touches[0].clientX;
+    const deltaX = moveX - touchStartX;
+    const threshold = 60;
+
+    if (deltaX > threshold && currentSwipeDirection !== 'right') {
+        triggerGlow(glowLeft); // swiping right, glow on left
+        currentSwipeDirection = 'right';
+    } else if (deltaX < -threshold && currentSwipeDirection !== 'left') {
+        triggerGlow(glowRight); // swiping left, glow on right
+        currentSwipeDirection = 'left';
+    }
+});
+calendarMobile?.addEventListener('touchend', () => {
+    touchStartX = null;
+    currentSwipeDirection = null;
+
+    // Trigger fade out via transition
+    [glowLeft, glowRight].forEach(el => el.classList.remove('show'));
 });
 
 populateHoursDropdown();
