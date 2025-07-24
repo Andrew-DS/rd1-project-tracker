@@ -710,6 +710,46 @@ function updateGlowHeightToTable() {
         });
     }
 }
+function openEntryPopup(dateStr) {
+    if (window.innerWidth > 768) return; // Only allow on mobile-sized screens
+
+    const popup = document.getElementById('day-popup');
+    const popupDate = document.getElementById('popup-date');
+    const popupDetails = document.getElementById('popup-details');
+
+    popupDate.textContent = new Date(dateStr).toDateString();
+    popupDetails.innerHTML = '';
+
+    const entries = entryDayMap.get(dateStr) || [];
+    const pto = ptoMap.get(dateStr);
+    const isHoliday = holidayMap.has(dateStr);
+
+    if (entries.length > 0) {
+        entries.forEach(entry => {
+            const div = document.createElement('div');
+            div.textContent = `${entry.Hours}h - ${entry.Description}`;
+            popupDetails.appendChild(div);
+        });
+    }
+
+    if (pto && pto.submitted > 0) {
+        const ptoDiv = document.createElement('div');
+        ptoDiv.textContent = `PTO Submitted: ${pto.submitted}h`;
+        popupDetails.appendChild(ptoDiv);
+    }
+
+    if (isHoliday) {
+        const holidayDiv = document.createElement('div');
+        holidayDiv.textContent = `Holiday: ${holidayMap.get(dateStr)}`;
+        popupDetails.appendChild(holidayDiv);
+    }
+
+    if (entries.length === 0 && (!pto || pto.submitted === 0) && !isHoliday) {
+        popupDetails.textContent = 'No entries for this day.';
+    }
+
+    popup.classList.remove('hidden');
+}
 function exportWeekToExcel(startStr, endStr) {
     const startDate = new Date(startStr + 'T00:00:00');
     const endDate = new Date(endStr + 'T00:00:00');
@@ -1244,15 +1284,30 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 document.addEventListener('click', (e) => {
     if (e.target.classList.contains('calendar-bar')) {
-        if (e.target.classList.contains('selected')) {
-            e.target.classList.remove('selected');
-        } else {
-            // Deselect any previously selected
-            document.querySelectorAll('.calendar-bar.selected').forEach(el => el.classList.remove('selected'));
+        const bar = e.target;
+        const cell = bar.closest('td');
+        const dateStr = cell?.getAttribute('data-date');
 
-            // Select clicked)
-            e.target.classList.add('selected');
+        // --- Mobile: Show popup only ---
+        if (window.innerWidth <= 768) {
+            if (dateStr) openEntryPopup(dateStr);
+            return; // No selection toggle on mobile
         }
+
+        // --- Desktop: Toggle selection ---
+        const alreadySelected = bar.classList.contains('selected');
+
+        // Deselect all
+        document.querySelectorAll('.calendar-bar.selected').forEach(el => el.classList.remove('selected'));
+
+        // Select only if it wasn't already selected
+        if (!alreadySelected) {
+            bar.classList.add('selected');
+        }
+    }
+
+    if (e.target.id === 'close-popup') {
+        document.getElementById('day-popup').classList.add('hidden');
     }
 });
 document.addEventListener('keydown', (e) => {

@@ -201,7 +201,7 @@ td {
 
 .calendar-day.selected {
     outline: 3px solid orange;
-    z-index: 1;
+    z-index: 5;
 }
 
 /* Calendar Icons */
@@ -394,6 +394,8 @@ td {
 .top-bar,
 .mobile-menu,
 .entry-section,
+.day-popup,
+.submit-container,
 .mobile-calendar {
     display: none;
 }
@@ -522,6 +524,7 @@ td {
     .submit-container {
         background-color: #f0f4f8;
         padding: 2rem 1rem 0rem 1rem;
+        display: flex;
     }
 
     #submit-week.full-width {
@@ -599,4 +602,46 @@ td {
             opacity: 1;
             transition: opacity 0.25s ease;
         }
+
+    .day-popup {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 100;
+    }
+
+        .day-popup.hidden {
+            display: none;
+        }
+
+    .day-popup-content {
+        background: white;
+        border-radius: 10px;
+        padding: 20px;
+        width: 90%;
+        max-width: 400px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        position: relative;
+    }
+
+    #close-popup {
+        position: absolute;
+        right: 10px;
+        top: 10px;
+        font-size: 1.5rem;
+        cursor: pointer;
+        color: #999;
+    }
+
+    #popup-details {
+        margin-top: 1rem;
+        font-size: 0.95rem;
+    }
+
 }
