@@ -13,6 +13,7 @@ const colorPalette = [
     '#879BA6', // Soft Blue-Silver
     '#D0D7DD'  // Faint Blue Tint
 ];
+
 let currentDate = new Date();
 let entryDayMap = new Map();
 let ptoMap = new Map();
@@ -21,6 +22,19 @@ let holidayMap = new Map();
 let isSelectingWeek = false;
 let frozenWeek = false;
 let submittedWeeks = [];
+let isMobile = window.innerWidth <= 768;
+
+window.addEventListener('resize', () => {
+    const newIsMobile = window.innerWidth <= 768;
+
+    if (newIsMobile !== isMobile) {
+        isMobile = newIsMobile;
+        queryEntries();
+    }
+});
+function getEl(idBase) {
+    return document.getElementById(`${idBase}-${isMobile ? 'mobile' : 'desktop'}`);
+}
 
 let swipeCooldown = false;
 let touchStartX = null;
@@ -30,6 +44,10 @@ const glowLeft = document.getElementById('swipe-glow-left');
 const glowRight = document.getElementById('swipe-glow-right');
 const calendarMobile = document.getElementById('calendar-mobile');
 
+const toggleBtn = document.getElementById('toggle-entry-btn');
+const entrySection = document.querySelector('.entry-section');
+const caret = document.getElementById('entry-caret');
+
 const PAYDAY_INTERVAL = 14; // every 2 weeks
 const PAYDAY_ANCHOR = new Date(2025, 0, 3); // Jan 3, 2025
 const PTO_RATE = 80 / 365; // 2 weeks per year
@@ -38,7 +56,6 @@ const paydaySet = new Set();
 const deadlineSet = new Set();
 
 function generateCalendar() {
-    const isMobile = window.innerWidth <= 768;
     const calendar = isMobile
         ? document.getElementById('calendar-mobile')
         : document.getElementById('calendar');
@@ -229,6 +246,21 @@ function generateCalendar() {
     html += '</tr></tbody></table>';
     calendar.innerHTML = html;
 
+    let lastTap = 0;
+    document.querySelectorAll('.calendar-day').forEach(cell => {
+        cell.addEventListener('click', (e) => {
+            if (!isMobile) return;
+
+            const now = new Date().getTime();
+            const delta = now - lastTap;
+            lastTap = now;
+
+            if (delta < 400) {
+                const dateStr = cell.getAttribute('data-date');
+                if (dateStr) openEntryPopup(dateStr);
+            }
+        });
+    });
     document.querySelectorAll('.calendar-icon.payday').forEach(icon => {
         icon.addEventListener('mouseenter', () => {
             if (frozenWeek) return;
@@ -457,8 +489,8 @@ function attachCalendarDayListeners() {
                 cell.classList.add('selected');
 
                 // Populate date inputs
-                const entryStart = document.getElementById('entry-start');
-                const entryEnd = document.getElementById('entry-end');
+                const entryStart = getEl('entry-start');
+                const entryEnd = getEl('entry-end');
 
                 if (entryStart && entryEnd) {
                     entryStart.value = selectedDate;
@@ -466,8 +498,8 @@ function attachCalendarDayListeners() {
                 }
             } else {
                 // Clear input values when unselecting
-                const entryStart = document.getElementById('entry-start');
-                const entryEnd = document.getElementById('entry-end');
+                const entryStart = getEl('entry-start');
+                const entryEnd = getEl('entry-end');
 
                 if (entryStart && entryEnd) {
                     entryStart.value = '';
@@ -491,28 +523,26 @@ function queryProjects() {
                 throw new Error('Expected an array but got something else.');
             }
 
-            const dropdowns = document.querySelectorAll('#category-list');
+            const dropdown = getEl('category-list');
 
-            dropdowns.forEach(list => {
-                list.innerHTML = '';
+            dropdown.innerHTML = '';
 
-                // Always add PTO Request first
-                const ptoOption = document.createElement('option');
-                ptoOption.value = 'PTO Request';
-                ptoOption.textContent = 'PTO Request';
-                list.appendChild(ptoOption);
+            // Always add PTO Request first
+            const ptoOption = document.createElement('option');
+            ptoOption.value = 'PTO Request';
+            ptoOption.textContent = 'PTO Request';
+            dropdown.appendChild(ptoOption);
 
-                data.forEach(project => {
-                    const option = document.createElement('option');
-                    option.textContent = project.Description;
-                    option.value = project.Description;
-                    list.appendChild(option);
+            data.forEach(project => {
+                const option = document.createElement('option');
+                option.textContent = project.Description;
+                option.value = project.Description;
+                dropdown.appendChild(option);
 
-                    // Assign a consistent color if not already assigned
-                    if (!projectColorMap.has(project.Description)) {
-                        projectColorMap.set(project.Description, getColorForProject(project.Description));
-                    }
-                });
+                // Assign a consistent color if not already assigned
+                if (!projectColorMap.has(project.Description)) {
+                    projectColorMap.set(project.Description, getColorForProject(project.Description));
+                }
             });
 
             // Ensure PTO Request always has a consistent color
@@ -951,11 +981,11 @@ async function querySubmittedWeeks(userId) {
         });
 }
 
-document.getElementById('upload-entry').addEventListener('click', () => {
-    const category = document.getElementById('category-list').value;
-    const startDateInput = document.getElementById('entry-start');
-    const endDateInput = document.getElementById('entry-end');
-    let hoursSelected = document.getElementById('hours');
+getEl('upload-entry').addEventListener('click', () => {
+    const category = getEl('category-list').value;
+    const startDateInput = getEl('entry-start');
+    const endDateInput = getEl('entry-end');
+    let hoursSelected = getEl('hours');
 
     if (!startDateInput.value) {
         alert('Please select a start date.');
@@ -983,7 +1013,7 @@ document.getElementById('upload-entry').addEventListener('click', () => {
         endDate = new Date(startDate); // Default to same as start
     }
 
-    hoursSelected = parseFloat(document.getElementById('hours').value);
+    hoursSelected = parseFloat(getEl('hours').value);
     if (isNaN(hoursSelected) || hoursSelected <= 0) {
         alert('Please select a valid number of hours.');
         return;
@@ -1084,9 +1114,8 @@ document.getElementById('upload-entry').addEventListener('click', () => {
             });
     }
 });
-document.getElementById('submit-week').addEventListener('click', () => {
-    const isMobile = window.innerWidth <= 768;
-    const submitBtn = document.getElementById('submit-week');
+getEl('submit-week').addEventListener('click', () => {
+    const submitBtn = getEl('submit-week');
     const entrySection = document.querySelector('.entry-section');
     const message = document.getElementById('week-select-message');
 
@@ -1110,7 +1139,7 @@ document.getElementById('submit-week').addEventListener('click', () => {
         message?.classList.add('visible');
     }
 });
-document.getElementById('remove-entry').addEventListener('click', async () => {
+getEl('remove-entry').addEventListener('click', async () => {
     const selectedBar = document.querySelector('.calendar-bar.selected');
 
     if (selectedBar) {
@@ -1121,7 +1150,7 @@ document.getElementById('remove-entry').addEventListener('click', async () => {
 
         try {
             const res = await fetch('/RemoveEntry', {
-                method: 'POST',
+                method: 'DELETE',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ Description: description, Date: dateStr })
             });
@@ -1186,9 +1215,9 @@ document.getElementById('remove-entry').addEventListener('click', async () => {
     }
 });
 document.addEventListener('DOMContentLoaded', () => {
-    const addBtn = document.getElementById('add-category-btn');
-    const removeBtn = document.getElementById('remove-category-btn');
-    const categoryList = document.getElementById('category-list');
+    const addBtn = getEl('add-category-btn');
+    const removeBtn = getEl('remove-category-btn');
+    const categoryList = getEl('category-list');
 
     if (addBtn) {
         addBtn.addEventListener('click', () => {
@@ -1273,7 +1302,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 document.addEventListener('DOMContentLoaded', () => {
-    const logoutBtn = document.getElementById('logout-btn');
+    const logoutBtn = getEl('logout-btn');
     if (logoutBtn) {
         logoutBtn.addEventListener('click', () => {
             sessionStorage.removeItem('username');
@@ -1285,20 +1314,12 @@ document.addEventListener('DOMContentLoaded', () => {
 document.addEventListener('click', (e) => {
     if (e.target.classList.contains('calendar-bar')) {
         const bar = e.target;
-        const cell = bar.closest('td');
-        const dateStr = cell?.getAttribute('data-date');
 
-        // --- Mobile: Show popup only ---
-        if (window.innerWidth <= 768) {
-            if (dateStr) openEntryPopup(dateStr);
-            return; // No selection toggle on mobile
-        }
-
-        // --- Desktop: Toggle selection ---
         const alreadySelected = bar.classList.contains('selected');
 
         // Deselect all
-        document.querySelectorAll('.calendar-bar.selected').forEach(el => el.classList.remove('selected'));
+        document.querySelectorAll('.calendar-bar.selected')
+            .forEach(el => el.classList.remove('selected'));
 
         // Select only if it wasn't already selected
         if (!alreadySelected) {
@@ -1360,6 +1381,10 @@ calendarMobile?.addEventListener('touchend', () => {
 
     // Trigger fade out via transition
     [glowLeft, glowRight].forEach(el => el.classList.remove('show'));
+});
+toggleBtn?.addEventListener('click', () => {
+    const isNowHidden = entrySection.classList.toggle('hidden');
+    caret.textContent = isNowHidden ? '▼' : '▲';
 });
 
 populateHoursDropdown();

@@ -21,41 +21,46 @@
 
     <!-- Mobile dropdown menu -->
     <nav id="mobile-menu" class="mobile-menu hidden">
-        <button id="logout-btn">Logout</button>
+        <button id="logout-btn-mobile">Logout</button>
     </nav>
 
     <!-- Mobile entry section -->
     <section class="entry-section">
 
         <div class="form-row category-row">
-            <label for="category-list">Category List:</label>
+            <label for="category-list-mobile">Category List:</label>
             <div class="category-actions">
-                <button id="add-category-btn">+</button>
-                <button id="remove-category-btn">−</button>
+                <button id="add-category-btn-mobile">+</button>
+                <button id="remove-category-btn-mobile">−</button>
             </div>
         </div>
         <div class="form-row">
-            <select id="category-list"></select>
+            <select id="category-list-mobile"></select>
         </div>
 
         <div class="form-row">
-            <label for="entry-start">Start Date:</label>
-            <input type="date" id="entry-start">
+            <label for="entry-start-mobile">Start Date:</label>
+            <input type="date" id="entry-start-mobile">
         </div>
 
         <div class="form-row">
-            <label for="entry-end">End Date:</label>
-            <input type="date" id="entry-end">
+            <label for="entry-end-mobile">End Date:</label>
+            <input type="date" id="entry-end-mobile">
         </div>
 
         <div class="button-row">
-            <button id="remove-entry">Remove Entry</button>
-            <button id="upload-entry">Upload Entry</button>
+            <button id="remove-entry-mobile">Remove Entry</button>
+            <button id="upload-entry-mobile">Upload Entry</button>
         </div>
     </section>
 
+    <div class="entry-toggle">
+        <button id="toggle-entry-btn">
+            <span id="entry-caret">▼</span>
+        </button>
+    </div>
     <div class="submit-container">
-        <button id="submit-week" class="full-width">Submit Week</button>
+        <button id="submit-week-mobile" class="full-width">Submit Week</button>
     </div>
 
     <main class="calendar-container mobile-calendar">
@@ -82,30 +87,30 @@
                     <h2>Project Entry</h2>
 
                     <div class="category-header">
-                        <label for="category-list">Category List:</label>
+                        <label for="category-list-desktop">Category List:</label>
                         <div class="category-actions">
-                            <button id="add-category-btn">+</button>
-                            <button id="remove-category-btn">−</button>
+                            <button id="add-category-btn-desktop">+</button>
+                            <button id="remove-category-btn-desktop">−</button>
                         </div>
                     </div>
-                    <select id="category-list"></select>
+                    <select id="category-list-desktop"></select>
 
                     <label for="hours">Hours (Per day):</label>
                     <select id="hours"></select>
 
-                    <label for="entry-start">Start Date:</label>
-                    <input type="date" id="entry-start">
+                    <label for="entry-start-desktop">Start Date:</label>
+                    <input type="date" id="entry-start-desktop">
 
-                    <label for="entry-end">End Date:</label>
-                    <input type="date" id="entry-end">
+                    <label for="entry-end-desktop">End Date:</label>
+                    <input type="date" id="entry-end-desktop">
 
-                    <button id="upload-entry">Upload Entry</button>
-                    <button id="remove-entry">Remove Entry</button>
+                    <button id="upload-entry-desktop">Upload Entry</button>
+                    <button id="remove-entry-desktop">Remove Entry</button>
                 </div>
 
                 <div class="sidebar-bottom-buttons">
-                    <button id="submit-week">Submit Week</button>
-                    <button id="logout-btn">Logout</button>
+                    <button id="submit-week-desktop">Submit Week</button>
+                    <button id="logout-btn-desktop">Logout</button>
                 </div>
             </div>
         </aside>

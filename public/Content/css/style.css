@@ -396,14 +396,54 @@ td {
 .entry-section,
 .day-popup,
 .submit-container,
-.mobile-calendar {
+.mobile-calendar,
+.entry-toggle {
     display: none;
 }
 
 @media (max-width: 768px) {
+    #submit-week-mobile {
+        background-color: #007bff;
+    }
+
+
+        #submit-week-mobile:hover {
+            background-color: #0056b3;
+        }
+
+
+        #submit-week-mobile.full-width {
+            width: 100%;
+            font-size: 1rem;
+            padding: 0.6rem;
+            border: none;
+            border-radius: 4px;
+            background-color: #007bff;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+
+            #submit-week-mobile.full-width:hover {
+                background-color: #0056b3;
+            }
+
+
+    #logout-btn-mobile {
+        background-color: silver;
+    }
+
+
+        #logout-btn-mobile:hover {
+            background-color: #78706E;
+        }
+
+
     /* ========== Layout ========== */
     html, body {
         overflow-x: hidden;
+        height: 100%;
     }
 
     body {
@@ -516,6 +556,30 @@ td {
                 flex: 1;
             }
 
+    .entry-toggle {
+        display: flex;
+        justify-content: center;
+        padding: 0.5rem;
+        background-color: #f0f4f8;
+    }
+
+    #toggle-entry-btn {
+        width: 100%;
+        background: none;
+        border: none;
+        font-size: 1rem;
+        font-weight: bold;
+        color: #003278;
+        cursor: pointer;
+        display: flex;
+        justify-content: center;
+    }
+
+    #entry-caret {
+        font-size: 1.2rem;
+        transition: transform 0.2s ease;
+    }
+
     .category-row {
         justify-content: space-between;
     }
@@ -523,7 +587,7 @@ td {
     /* ========== Submit Week Button (now outside entry-section) ========== */
     .submit-container {
         background-color: #f0f4f8;
-        padding: 2rem 1rem 0rem 1rem;
+        padding: 0rem 1rem 0rem 1rem;
         display: flex;
     }
 
@@ -570,8 +634,9 @@ td {
         text-align: left;
     }
 
-    #calendar {
+    #calendar-mobile {
         flex: 1;
+        height: 100%;
         width: 100%;
         max-width: 100%;
     }
@@ -643,5 +708,42 @@ td {
         margin-top: 1rem;
         font-size: 0.95rem;
     }
-
 }
+
+
+#submit-week-desktop {
+    background-color: #007bff;
+}
+
+
+    #submit-week-desktop:hover {
+        background-color: #0056b3;
+    }
+
+
+    #submit-week-desktop.full-width {
+        width: 100%;
+        font-size: 1rem;
+        padding: 0.6rem;
+        border: none;
+        border-radius: 4px;
+        background-color: #007bff;
+        color: white;
+        font-weight: bold;
+        cursor: pointer;
+    }
+
+
+        #submit-week-desktop.full-width:hover {
+            background-color: #0056b3;
+        }
+
+
+#logout-btn-desktop {
+    background-color: silver;
+}
+
+
+    #logout-btn-desktop:hover {
+        background-color: #78706E;
+    }
