@@ -688,7 +688,7 @@ function highlightPreviousTwoWeeks(endDateStr) {
 function populateHoursDropdown() {
     const hoursDropdowns = getEl('hours');
     hoursDropdowns.innerHTML = '';
-    for (let i = 1; i <= 12; i++) {
+    for (let i = 1; i <= 12; i += 0.5) {
         const opt = document.createElement('option');
         opt.value = i;
         opt.textContent = i;
