@@ -247,7 +247,7 @@ td {
 
     .calendar-bar.selected {
         outline: 2px solid red;
-        z-index: 2;
+        z-index: 3;
     }
 
     .calendar-bar:hover::after {
@@ -633,6 +633,41 @@ td {
         margin: auto;
         text-align: left;
     }
+
+    .month-popup {
+        position: absolute;
+        top: 3.5rem;
+        left: 50%;
+        transform: translateX(-50%);
+        background: white;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.5rem;
+        padding: 1rem;
+        z-index: 10;
+        width: 90%;
+        max-width: 300px;
+    }
+
+        .month-popup.hidden {
+            display: none;
+        }
+
+    .month-option {
+        padding: 0.5rem;
+        background: #f0f4f8;
+        text-align: center;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: bold;
+    }
+
+        .month-option:hover {
+            background: #d6e9f8;
+        }
 
     #calendar-mobile {
         flex: 1;

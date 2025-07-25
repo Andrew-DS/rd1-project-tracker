@@ -1,4 +1,5 @@
-﻿const projectColorMap = new Map();
+﻿// ============== calendar constants ============== //
+const projectColorMap = new Map();
 const colorPalette = [
     '#002244', // Cowboys Navy
     '#003366', // Darker Blue Accent
@@ -18,7 +19,9 @@ let currentDate = new Date();
 let entryDayMap = new Map();
 let ptoMap = new Map();
 let holidayMap = new Map();
+let rangeStartDate = null;
 
+// ============== window constants ============== //
 let isSelectingWeek = false;
 let frozenWeek = false;
 let submittedWeeks = [];
@@ -29,6 +32,9 @@ window.addEventListener('resize', () => {
 
     if (newIsMobile !== isMobile) {
         isMobile = newIsMobile;
+
+        populateHoursDropdown();
+        queryProjects();
         queryEntries();
     }
 });
@@ -36,6 +42,7 @@ function getEl(idBase) {
     return document.getElementById(`${idBase}-${isMobile ? 'mobile' : 'desktop'}`);
 }
 
+// ============== mobile constants ============== //
 let swipeCooldown = false;
 let touchStartX = null;
 let currentSwipeDirection = null;
@@ -48,6 +55,7 @@ const toggleBtn = document.getElementById('toggle-entry-btn');
 const entrySection = document.querySelector('.entry-section');
 const caret = document.getElementById('entry-caret');
 
+// ============== payday constants ============== //
 const PAYDAY_INTERVAL = 14; // every 2 weeks
 const PAYDAY_ANCHOR = new Date(2025, 0, 3); // Jan 3, 2025
 const PTO_RATE = 80 / 365; // 2 weeks per year
@@ -55,6 +63,7 @@ const PTO_RATE = 80 / 365; // 2 weeks per year
 const paydaySet = new Set();
 const deadlineSet = new Set();
 
+// ============== functions ============== //
 function generateCalendar() {
     const calendar = isMobile
         ? document.getElementById('calendar-mobile')
@@ -244,6 +253,18 @@ function generateCalendar() {
     }
 
     html += '</tr></tbody></table>';
+
+    if (isMobile) {
+        html += `
+        <div id="month-popup" class="month-popup hidden">
+            ${[...Array(12).keys()].map(i => {
+            const month = new Date(0, i).toLocaleString('default', { month: 'long' });
+            return `<div class="month-option" data-month="${i}">${month}</div>`;
+        }).join('')}
+        </div>
+    `;
+    }
+
     calendar.innerHTML = html;
 
     let lastTap = 0;
@@ -342,6 +363,24 @@ function generateCalendar() {
     attachCalendarDayListeners();
 
     if (isMobile) {
+        const monthHeader = document.querySelector('.month-header');
+        const popup = document.getElementById('month-popup');
+
+        if (monthHeader && popup) {
+            monthHeader.addEventListener('click', () => {
+                popup.classList.toggle('hidden');
+            });
+
+            popup.querySelectorAll('.month-option').forEach(option => {
+                option.addEventListener('click', () => {
+                    const selectedMonth = parseInt(option.getAttribute('data-month'));
+                    currentDate.setMonth(selectedMonth);
+                    popup.classList.add('hidden');
+                    queryEntries();
+                });
+            });
+        }
+
         updateGlowHeightToTable();
         enableSwipeNavigation(calendar);
     }
@@ -452,17 +491,15 @@ function attachMonthSwitchHandlers() {
 }
 function attachCalendarDayListeners() {
     document.querySelectorAll('.calendar-day').forEach(cell => {
-        cell.addEventListener('click', () => {
-            const selectedDate = cell.getAttribute('data-date');
-            if (!selectedDate) return;
+        cell.addEventListener('click', (e) => {
+            const selectedDateStr = cell.getAttribute('data-date');
+            if (!selectedDateStr) return;
 
             if (isSelectingWeek) {
                 const parentRow = cell.closest('tr.week-highlight');
-                if (parentRow) {
-                    parentRow.style.visibility = 'visible';
-                }
+                if (parentRow) parentRow.style.visibility = 'visible';
 
-                const clickedDate = new Date(selectedDate);
+                const clickedDate = new Date(selectedDateStr);
                 const startOfWeek = new Date(clickedDate);
                 startOfWeek.setDate(clickedDate.getDate() - clickedDate.getDay());
 
@@ -472,38 +509,52 @@ function attachCalendarDayListeners() {
                 exportWeekToExcel(startOfWeek, endOfWeek);
 
                 isSelectingWeek = false;
-                document.getElementById('week-select-message').style.display = 'none';
+                getEl('week-select-message')?.classList.remove('visible');
                 return;
             }
 
-            // Toggle day selection (not in week mode)
-            const alreadySelected = cell.classList.contains('selected');
+            const clickedDate = new Date(selectedDateStr);
 
-            // Clear all highlights
-            document.querySelectorAll('.calendar-day.selected').forEach(el => {
-                el.classList.remove('selected');
-            });
+            if (e.shiftKey && rangeStartDate) {
+                // Shift+click: highlight range
+                const [start, end] = rangeStartDate <= clickedDate
+                    ? [rangeStartDate, clickedDate]
+                    : [clickedDate, rangeStartDate];
 
-            if (!alreadySelected) {
-                // Apply selection
-                cell.classList.add('selected');
+                document.querySelectorAll('.calendar-day.selected').forEach(el =>
+                    el.classList.remove('selected')
+                );
 
-                // Populate date inputs
-                const entryStart = getEl('entry-start');
-                const entryEnd = getEl('entry-end');
-
-                if (entryStart && entryEnd) {
-                    entryStart.value = selectedDate;
-                    entryEnd.value = selectedDate;
+                const temp = new Date(start);
+                while (temp <= end) {
+                    const tempStr = temp.toISOString().split('T')[0];
+                    const rangeCell = document.querySelector(`.calendar-day[data-date="${tempStr}"]`);
+                    if (rangeCell) rangeCell.classList.add('selected');
+                    temp.setDate(temp.getDate() + 1);
                 }
-            } else {
-                // Clear input values when unselecting
+
                 const entryStart = getEl('entry-start');
                 const entryEnd = getEl('entry-end');
-
                 if (entryStart && entryEnd) {
-                    entryStart.value = '';
-                    entryEnd.value = '';
+                    entryStart.value = start.toISOString().split('T')[0];
+                    entryEnd.value = end.toISOString().split('T')[0];
+                }
+
+                rangeStartDate = null;
+            } else {
+                // Normal single-click: reset + select
+                document.querySelectorAll('.calendar-day.selected').forEach(el =>
+                    el.classList.remove('selected')
+                );
+
+                cell.classList.add('selected');
+                rangeStartDate = clickedDate;
+
+                const entryStart = getEl('entry-start');
+                const entryEnd = getEl('entry-end');
+                if (entryStart && entryEnd) {
+                    entryStart.value = selectedDateStr;
+                    entryEnd.value = selectedDateStr;
                 }
             }
         });
@@ -635,16 +686,14 @@ function highlightPreviousTwoWeeks(endDateStr) {
     calendar.appendChild(outline);
 }
 function populateHoursDropdown() {
-    const hoursDropdowns = document.querySelectorAll('#hours');
-    hoursDropdowns.forEach(hoursSelect => {
-        hoursSelect.innerHTML = '';
-        for (let i = 1; i <= 12; i++) {
-            const opt = document.createElement('option');
-            opt.value = i;
-            opt.textContent = i;
-            hoursSelect.appendChild(opt);
-        }
-    });
+    const hoursDropdowns = getEl('hours');
+    hoursDropdowns.innerHTML = '';
+    for (let i = 1; i <= 12; i++) {
+        const opt = document.createElement('option');
+        opt.value = i;
+        opt.textContent = i;
+        hoursDropdowns.appendChild(opt);
+    }
 }
 function isWeekSubmitted(dateStr) {
     const date = new Date(dateStr);
@@ -1147,12 +1196,15 @@ getEl('remove-entry').addEventListener('click', async () => {
         const parentTd = selectedBar.closest('td');
         const dateStr = parentTd.getAttribute('data-date');
         const description = selectedBar.getAttribute('data-fulltext');
+        const text = selectedBar.textContent || '';
+        const hoursMatch = text.match(/(\d+(?:\.\d+)?)h/);
+        const hours = hoursMatch ? parseFloat(hoursMatch[1]) : 0;
 
         try {
             const res = await fetch('/RemoveEntry', {
                 method: 'DELETE',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ Description: description, Date: dateStr })
+                body: JSON.stringify({ Description: description, Date: dateStr, Hours: hours })
             });
 
             const result = await res.json();
@@ -1353,6 +1405,14 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+document.addEventListener('click', (e) => {
+    const popup = document.getElementById('month-popup');
+    if (popup && !popup.classList.contains('hidden')) {
+        if (!popup.contains(e.target) && !e.target.closest('.month-header')) {
+            popup.classList.add('hidden');
+        }
+    }
+});
 calendarMobile?.addEventListener('touchstart', (e) => {
     touchStartX = e.touches[0].clientX;
     currentSwipeDirection = null;
@@ -1382,6 +1442,7 @@ calendarMobile?.addEventListener('touchend', () => {
     // Trigger fade out via transition
     [glowLeft, glowRight].forEach(el => el.classList.remove('show'));
 });
+
 toggleBtn?.addEventListener('click', () => {
     const isNowHidden = entrySection.classList.toggle('hidden');
     caret.textContent = isNowHidden ? '▼' : '▲';

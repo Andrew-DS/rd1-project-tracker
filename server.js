@@ -286,15 +286,19 @@ app.post('/AddUserPTO', async (req, res) => {
 
 // ========================== DELETE ROUTES ==========================
 app.delete('/RemoveEntry', async (req, res) => {
-    const { Description, Date } = req.body;
+    const { Description, Date, Hours } = req.body;
     try {
         await sql.connect(config);
         await new sql.Request()
             .input('Description', sql.NVarChar, Description)
             .input('Date', sql.Date, Date)
+            .input('Hours', sql.Numeric(18,2), Hours)
             .query(`
                 DELETE FROM ProjectEntries
-                WHERE Description = @Description AND StartDate <= @Date AND EndDate >= @Date
+                WHERE Description = @Description 
+                AND StartDate <= @Date 
+                AND EndDate >= @Date 
+                AND Hours = @Hours
             `);
         res.json({ success: true });
     } catch (err) {
