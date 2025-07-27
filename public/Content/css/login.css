@@ -90,6 +90,33 @@ html, body {
             color: #0056b3;
         }
 
+.spinner {
+    width: 32px;
+    height: 32px;
+    color: #0078d4; /* Azure blue */
+    margin-left: 8px;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+.hidden {
+    display: none;
+}
+
+.animate-spin {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
 #login-error {
     color: crimson;
     font-weight: bold;

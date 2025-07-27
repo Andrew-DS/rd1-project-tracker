@@ -28,9 +28,21 @@
                 <a href="/forgot-password.html" id="forgot-link">Forgot Password?</a>
             </div>
 
-            <button type="submit">Login</button>
+            <!-- Login button with spinner inside -->
+            <button type="submit" id="login-btn">
+                Login
+                <span id="login-spinner" class="spinner hidden">
+                    <svg class="animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                    </svg>
+                </span>
+            </button>
+
         </form>
-        <p id="login-error" style="color: red; display: none;">Invalid credentials</p>
+
+        <!-- Error or warm-up message -->
+        <p id="login-message" class="login-message"></p>
     </div>
 
     <script src="./Content/js/login.js"></script>
