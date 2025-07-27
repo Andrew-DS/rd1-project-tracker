@@ -1442,7 +1442,6 @@ calendarMobile?.addEventListener('touchend', () => {
     // Trigger fade out via transition
     [glowLeft, glowRight].forEach(el => el.classList.remove('show'));
 });
-
 toggleBtn?.addEventListener('click', () => {
     const isNowHidden = entrySection.classList.toggle('hidden');
     caret.textContent = isNowHidden ? '▼' : '▲';

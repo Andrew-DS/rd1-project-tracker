@@ -4,22 +4,29 @@ const crypto = require('crypto');
 const cors = require('cors');
 const sql = require('mssql');
 const path = require('path');
-const config = require('./config/dbconfig.js');
+const config = require('./config/dbConfig.js');
+
+const { queryWithRetry } = require('./config/db');
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-const port = process.env.PORT || 3000;
-
-app.listen(port, () => {
-    console.log(`Server is running on port ${port}`);
+// ========================== HEALTH ==========================
+app.get('/health', async (req, res) => {
+    try {
+        await queryWithRetry('SELECT 1');
+        res.status(200).send('OK');
+    } catch (err) {
+        console.error('Health check failed:', err.message);
+        res.status(503).send('Database not ready');
+    }
 });
 
-// ========================== HEALTH ==========================
-app.get('/health', (req, res) => {
-    res.status(200).send('Healthy');
+const port = process.env.PORT || 3000;
+app.listen(port, () => {
+    console.log(`Server is running on port ${port}`);
 });
 
 // ========================== GET ROUTES ==========================
@@ -93,16 +100,26 @@ app.get('/sql-status', async (req, res) => {
 // ========================== POST ROUTES ==========================
 app.post('/Login', async (req, res) => {
     const { username, password } = req.body;
+
     try {
-        await sql.connect(config);
-        const result = await sql.query`SELECT * FROM Users WHERE Username = ${username}`;
-        if (result.recordset.length === 0) return res.status(401).json({ success: false, error: 'Invalid username or password.' });
+        const result = await queryWithRetry(
+            'SELECT * FROM Users WHERE Username = @username',
+            reqSql => reqSql.input('username', sql.VarChar, username)
+        );
+
+        if (result.recordset.length === 0) {
+            return res.status(401).json({ success: false, error: 'Invalid username or password.' });
+        }
 
         const user = result.recordset[0];
-        if (!user.Password) return res.status(500).json({ success: false, error: 'Password not found for user.' });
+        if (!user.Password) {
+            return res.status(500).json({ success: false, error: 'Password not found for user.' });
+        }
 
         const isMatch = await bcrypt.compare(password, user.Password);
-        if (!isMatch) return res.status(401).json({ success: false, error: 'Invalid username or password.' });
+        if (!isMatch) {
+            return res.status(401).json({ success: false, error: 'Invalid username or password.' });
+        }
 
         res.json({ success: true, user: { username: user.Username, role: user.Role || 'username' } });
     } catch (err) {
