@@ -1,4 +1,4 @@
-﻿// ============== calendar constants ============== //
+﻿// ============== CALENDAR CONSTANTS ============== //
 const projectColorMap = new Map();
 const colorPalette = [
     '#002244', // Cowboys Navy
@@ -21,13 +21,15 @@ let ptoMap = new Map();
 let holidayMap = new Map();
 let rangeStartDate = null;
 
-// ============== window constants ============== //
+// ============== WINDOW CONSTANTS ============== //
 let isSelectingWeek = false;
 let frozenWeek = false;
 let submittedWeeks = [];
 let isMobile = window.innerWidth <= 768;
 
 window.addEventListener('resize', () => {
+    document.documentElement.style.setProperty('--vh', `${window.innerHeight * 0.01}px`);
+
     const newIsMobile = window.innerWidth <= 768;
 
     if (newIsMobile !== isMobile) {
@@ -42,7 +44,7 @@ function getEl(idBase) {
     return document.getElementById(`${idBase}-${isMobile ? 'mobile' : 'desktop'}`);
 }
 
-// ============== mobile constants ============== //
+// ============== MOBILE CONSTANTS ============== //
 let swipeCooldown = false;
 let touchStartX = null;
 let currentSwipeDirection = null;
@@ -55,7 +57,7 @@ const toggleBtn = document.getElementById('toggle-entry-btn');
 const entrySection = document.querySelector('.entry-section');
 const caret = document.getElementById('entry-caret');
 
-// ============== payday constants ============== //
+// ============== PAYDAY CONSTANTS ============== //
 const PAYDAY_INTERVAL = 14; // every 2 weeks
 const PAYDAY_ANCHOR = new Date(2025, 0, 3); // Jan 3, 2025
 const PTO_RATE = 80 / 365; // 2 weeks per year
@@ -63,11 +65,9 @@ const PTO_RATE = 80 / 365; // 2 weeks per year
 const paydaySet = new Set();
 const deadlineSet = new Set();
 
-// ============== functions ============== //
+// ============== CALENDAR FUNCTIONS ============== //
 function generateCalendar() {
-    const calendar = isMobile
-        ? document.getElementById('calendar-mobile')
-        : document.getElementById('calendar');
+    const calendar = getEl('calendar');
 
     if (!calendar) return;
 
@@ -254,6 +254,16 @@ function generateCalendar() {
 
     html += '</tr></tbody></table>';
 
+    html += `
+    <div class="calendar-legend">
+        <div class="legend-row"><div class="legend-box holiday-example"></div>Holiday</div>
+        <div class="legend-row"><div class="legend-box pto-example"></div>PTO</div>
+        <div class="legend-row"><div class="legend-box outline-example"></div>Pay Period</div>
+        <div class="legend-row"><div class="legend-icon">⏰</div>Last Day to Submit</div>
+        <div class="legend-row"><div class="legend-icon">$</div>Payday</div>
+    </div>
+    `;
+
     if (isMobile) {
         html += `
         <div id="month-popup" class="month-popup hidden">
@@ -266,6 +276,46 @@ function generateCalendar() {
     }
 
     calendar.innerHTML = html;
+
+    const weekMessage = document.getElementById('week-select-message');
+    if (!weekMessage) return;
+
+    const todayIso = new Date().toISOString().split('T')[0];
+    let matchedPayday = null;
+
+    // Find next payday after today
+    for (const paydayStr of paydaySet) {
+        const payday = new Date(paydayStr);
+        const today = new Date();
+        if (payday >= today) {
+            matchedPayday = payday;
+            break;
+        }
+    }
+
+    if (matchedPayday) {
+        const deadline = new Date(matchedPayday);
+        deadline.setDate(deadline.getDate() - 3); // Tuesday before payday
+
+        const isTodayDeadline = todayIso === deadline.toISOString().split('T')[0];
+
+        const weekEnd = new Date(matchedPayday);
+        weekEnd.setDate(weekEnd.getDate() - 6); // End of pay period
+
+        const weekStart = new Date(weekEnd);
+        weekStart.setDate(weekEnd.getDate() - 13); // Beginning of pay period
+
+        const startStr = weekStart.toISOString().split('T')[0];
+        const endStr = weekEnd.toISOString().split('T')[0];
+
+        if (isTodayDeadline) {
+            weekMessage.innerHTML = `<span style="color: crimson; font-weight: bold;">Today is the last day to submit for ${startStr} to ${endStr}</span>`;
+        } else {
+            weekMessage.textContent = `Current pay period: ${startStr} to ${endStr}`;
+        }
+
+        weekMessage.classList.add('visible');
+    }
 
     let lastTap = 0;
     document.querySelectorAll('.calendar-day').forEach(cell => {
@@ -341,8 +391,11 @@ function generateCalendar() {
                 today.setHours(0, 0, 0, 0);
 
                 if (today > deadline) {
-                    alert('You can no longer submit this week. The submission deadline has passed.');
-                    return;
+                    const role = sessionStorage.getItem('role');
+                    if (role !== 'admin') {
+                        alert('You can no longer submit this week. The submission deadline has passed.');
+                        return;
+                    }
                 }
 
                 // 🛑 Confirmation before final submit
@@ -422,50 +475,27 @@ function calculatePayPeriods(viewYear, viewMonth) {
         payday.setDate(payday.getDate() + PAYDAY_INTERVAL);
     }
 }
-function populateHolidayMap(year) {
-    holidayMap.clear();
-
-    // Fixed-date holidays
-    holidayMap.set(`${year}-01-01`, 'New Year\'s Day');
-    holidayMap.set(`${year}-06-19`, 'Juneteenth');
-    holidayMap.set(`${year}-07-04`, 'Independence Day');
-    holidayMap.set(`${year}-12-24`, 'Christmas Eve');
-    holidayMap.set(`${year}-12-25`, 'Christmas Day');
-
-    // Dynamic-date holidays
-    holidayMap.set(getMemorialDay(year), 'Memorial Day');
-    holidayMap.set(getLaborDay(year), 'Labor Day');
-    holidayMap.set(getThanksgiving(year), 'Thanksgiving Day');
-    holidayMap.set(getThanksgivingFriday(year), 'Day After Thanksgiving');
+function goToNextMonth() {
+    const newDate = new Date(currentDate);
+    newDate.setMonth(newDate.getMonth() + 1);
+    currentDate = newDate;
+    queryEntries();
 }
-function getMemorialDay(year) {
-    const date = new Date(year, 4, 31); // May 31
-    while (date.getDay() !== 1) date.setDate(date.getDate() - 1); // last Monday
-    return date.toISOString().split('T')[0];
+function goToPreviousMonth() {
+    const newDate = new Date(currentDate);
+    newDate.setMonth(newDate.getMonth() - 1);
+    currentDate = newDate;
+    queryEntries();
 }
-function getLaborDay(year) {
-    const date = new Date(year, 8, 1); // Sep 1
-    while (date.getDay() !== 1) date.setDate(date.getDate() + 1); // first Monday
-    return date.toISOString().split('T')[0];
-}
-function getThanksgiving(year) {
-    const date = new Date(year, 10, 1); // Nov 1
-    let count = 0;
-    while (true) {
-        if (date.getDay() === 4) count++; // Thursday
-        if (count === 4) break;
-        date.setDate(date.getDate() + 1);
+function populateHoursDropdown() {
+    const hoursDropdowns = getEl('hours');
+    hoursDropdowns.innerHTML = '';
+    for (let i = 1; i <= 12; i += 0.5) {
+        const opt = document.createElement('option');
+        opt.value = i;
+        opt.textContent = i;
+        hoursDropdowns.appendChild(opt);
     }
-    return date.toISOString().split('T')[0];
-}
-function getThanksgivingFriday(year) {
-    const thanksgiving = new Date(getThanksgiving(year));
-    thanksgiving.setDate(thanksgiving.getDate() + 1);
-    return thanksgiving.toISOString().split('T')[0];
-}
-function isPtoDay(dateStr) {
-    let ptoDay = ptoMap.has(dateStr) && parseFloat(ptoMap.get(dateStr).submitted) > 0;
-    return ptoDay;
 }
 function parseEntryRange(entry) {
     const start = new Date(entry.StartDate);
@@ -627,6 +657,23 @@ function queryEntries() {
         })
         .then(() => {
             generateCalendar();
+
+            const today = new Date();
+            let nextPayday = null;
+
+            for (const dateStr of paydaySet) {
+                const payday = new Date(dateStr);
+                if (payday >= today) {
+                    nextPayday = payday;
+                    break;
+                }
+            }
+
+            if (nextPayday) {
+                const paydayStr = nextPayday.toISOString().split('T')[0];
+                frozenWeek = true;
+                highlightPreviousTwoWeeks(paydayStr);
+            }
         })
         .catch(error => {
             console.error('Error fetching project entries:', error);
@@ -649,7 +696,7 @@ function highlightWeekFromCell(cell) {
 function highlightPreviousTwoWeeks(endDateStr) {
     clearHighlightedWeek();
 
-    const calendar = document.getElementById('calendar');
+    const calendar = getEl('calendar');
     const endDate = new Date(endDateStr);
     const saturdayBeforePayday = new Date(endDate);
     saturdayBeforePayday.setDate(endDate.getDate() - endDate.getDay() - 1); // Saturday before payday week
@@ -674,97 +721,66 @@ function highlightPreviousTwoWeeks(endDateStr) {
     const lastRight = Math.max(...cells.map(c => c.offsetLeft + c.offsetWidth));
     const height = cells[13].offsetTop - cells[0].offsetTop;
 
+    const cellPaddingOffset = 2;
     const outline = document.createElement('div');
     outline.id = 'active-week-outline';
     outline.className = 'week-outline';
     outline.style.position = 'absolute';
-    outline.style.top = `${firstTop}px`;
-    outline.style.left = `${firstLeft}px`;
-    outline.style.width = `${lastRight - firstLeft}px`;
-    outline.style.height = `${height}px`;
+    outline.style.top = `${firstTop - cellPaddingOffset}px`;
+    outline.style.left = `${firstLeft - cellPaddingOffset}px`;
+    outline.style.width = `${lastRight - firstLeft + cellPaddingOffset * 2}px`;
+    outline.style.height = `${height + cellPaddingOffset}px`;
 
     calendar.appendChild(outline);
 }
-function populateHoursDropdown() {
-    const hoursDropdowns = getEl('hours');
-    hoursDropdowns.innerHTML = '';
-    for (let i = 1; i <= 12; i += 0.5) {
-        const opt = document.createElement('option');
-        opt.value = i;
-        opt.textContent = i;
-        hoursDropdowns.appendChild(opt);
+// ============== HOLIDAY FUNCTIONS ============== //
+function populateHolidayMap(year) {
+    holidayMap.clear();
+
+    // Fixed-date holidays
+    holidayMap.set(`${year}-01-01`, 'New Year\'s Day');
+    holidayMap.set(`${year}-06-19`, 'Juneteenth');
+    holidayMap.set(`${year}-07-04`, 'Independence Day');
+    holidayMap.set(`${year}-12-24`, 'Christmas Eve');
+    holidayMap.set(`${year}-12-25`, 'Christmas Day');
+
+    // Dynamic-date holidays
+    holidayMap.set(getMemorialDay(year), 'Memorial Day');
+    holidayMap.set(getLaborDay(year), 'Labor Day');
+    holidayMap.set(getThanksgiving(year), 'Thanksgiving Day');
+    holidayMap.set(getThanksgivingFriday(year), 'Day After Thanksgiving');
+}
+function getMemorialDay(year) {
+    const date = new Date(year, 4, 31); // May 31
+    while (date.getDay() !== 1) date.setDate(date.getDate() - 1); // last Monday
+    return date.toISOString().split('T')[0];
+}
+function getLaborDay(year) {
+    const date = new Date(year, 8, 1); // Sep 1
+    while (date.getDay() !== 1) date.setDate(date.getDate() + 1); // first Monday
+    return date.toISOString().split('T')[0];
+}
+function getThanksgiving(year) {
+    const date = new Date(year, 10, 1); // Nov 1
+    let count = 0;
+    while (true) {
+        if (date.getDay() === 4) count++; // Thursday
+        if (count === 4) break;
+        date.setDate(date.getDate() + 1);
     }
+    return date.toISOString().split('T')[0];
 }
-function isWeekSubmitted(dateStr) {
-    const date = new Date(dateStr);
-    return submittedWeeks.some(({ WeekStart, WeekEnd }) => {
-        const start = new Date(WeekStart);
-        const end = new Date(WeekEnd);
-        return date >= start && date <= end;
-    });
+function getThanksgivingFriday(year) {
+    const thanksgiving = new Date(getThanksgiving(year));
+    thanksgiving.setDate(thanksgiving.getDate() + 1);
+    return thanksgiving.toISOString().split('T')[0];
 }
-function handleWeekSubmit(userId, startStr, endStr) {
-    exportWeekToExcel(startStr, endStr);
-
-    fetch('/SubmitWeek', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ UserID: userId, WeekStart: startStr, WeekEnd: endStr })
-    })
-        .then(res => res.json())
-        .then(() => {
-            isSelectingWeek = false;
-            document.getElementById('week-select-message')?.classList.remove('visible');
-            queryEntries(); // refresh calendar with locked week
-        })
-        .catch(err => {
-            console.error('Error submitting week:', err);
-            alert('Failed to mark the week as submitted.');
-        });
+// ============== PTO FUNCTIONS ============== //
+function isPtoDay(dateStr) {
+    let ptoDay = ptoMap.has(dateStr) && parseFloat(ptoMap.get(dateStr).submitted) > 0;
+    return ptoDay;
 }
-function clearHighlightedWeek() {
-    const box = document.getElementById('active-week-outline');
-    if (box) box.remove();
-}
-function enableSwipeNavigation(calendar) {
-    let touchStartX = 0;
-
-    calendar.addEventListener('touchstart', (e) => {
-        touchStartX = e.touches[0].clientX;
-    });
-
-    calendar.addEventListener('touchend', (e) => {
-        const touchEndX = e.changedTouches[0].clientX;
-        const deltaX = touchEndX - touchStartX;
-
-        if (Math.abs(deltaX) > 50 && !swipeCooldown) {
-            swipeCooldown = true;
-
-            if (deltaX < 0) {
-                goToNextMonth();
-            } else {
-                goToPreviousMonth();
-            }
-
-            // prevent rapid fire
-            setTimeout(() => {
-                swipeCooldown = false;
-            }, 400); // adjust delay as needed
-        }
-    });
-}
-function goToNextMonth() {
-    const newDate = new Date(currentDate);
-    newDate.setMonth(newDate.getMonth() + 1);
-    currentDate = newDate;
-    queryEntries();
-}
-function goToPreviousMonth() {
-    const newDate = new Date(currentDate);
-    newDate.setMonth(newDate.getMonth() - 1);
-    currentDate = newDate;
-    queryEntries();
-}
+// ============== MOBILE FUNCTIONS ============== //
 function triggerGlow(glowElement) {
     // Remove both glows, then apply the one for this direction
     [glowLeft, glowRight].forEach(el => el.classList.remove('show'));
@@ -828,6 +844,102 @@ function openEntryPopup(dateStr) {
     }
 
     popup.classList.remove('hidden');
+}
+function enableSwipeNavigation(calendar) {
+    let touchStartX = 0;
+
+    calendar.addEventListener('touchstart', (e) => {
+        touchStartX = e.touches[0].clientX;
+    });
+
+    calendar.addEventListener('touchend', (e) => {
+        const touchEndX = e.changedTouches[0].clientX;
+        const deltaX = touchEndX - touchStartX;
+
+        if (Math.abs(deltaX) > 50 && !swipeCooldown) {
+            swipeCooldown = true;
+
+            if (deltaX < 0) {
+                goToNextMonth();
+            } else {
+                goToPreviousMonth();
+            }
+
+            // prevent rapid fire
+            setTimeout(() => {
+                swipeCooldown = false;
+            }, 400); // adjust delay as needed
+        }
+    });
+}
+// ============== SUBMIT FUNCTIONS ============== //
+function updateWeekSelectMessage() {
+    const message = document.getElementById('week-select-message');
+    if (!message) return;
+
+    const currentDateStr = new Date().toISOString().split('T')[0];
+    const currentDate = new Date();
+    let nextPayday = null;
+
+    for (const paydayStr of paydaySet) {
+        const payday = new Date(paydayStr);
+        if (payday >= currentDate) {
+            nextPayday = payday;
+            break;
+        }
+    }
+
+    if (!nextPayday) {
+        message.textContent = 'Click any day to select a week for export. Press ESC to cancel.';
+        return;
+    }
+
+    const deadlineDate = new Date(nextPayday);
+    deadlineDate.setDate(deadlineDate.getDate() - 3); // Tuesday
+
+    const weekEnd = new Date(nextPayday);
+    const weekStart = new Date(nextPayday);
+    weekStart.setDate(weekEnd.getDate() - 13);
+
+    const startStr = weekStart.toISOString().split('T')[0];
+    const endStr = weekEnd.toISOString().split('T')[0];
+
+    if (currentDateStr === deadlineDate.toISOString().split('T')[0]) {
+        message.innerHTML = `<span style="color: crimson; font-weight: bold;">Today is the last day to submit for ${startStr} to ${endStr}</span>`;
+    } else {
+        message.textContent = 'Click any day to select a week for export. Press ESC to cancel.';
+    }
+}
+function isWeekSubmitted(dateStr) {
+    const date = new Date(dateStr);
+    return submittedWeeks.some(({ WeekStart, WeekEnd }) => {
+        const start = new Date(WeekStart);
+        const end = new Date(WeekEnd);
+        return date >= start && date <= end;
+    });
+}
+function handleWeekSubmit(userId, startStr, endStr) {
+    exportWeekToExcel(startStr, endStr);
+
+    fetch('/SubmitWeek', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ UserID: userId, WeekStart: startStr, WeekEnd: endStr })
+    })
+        .then(res => res.json())
+        .then(() => {
+            isSelectingWeek = false;
+            document.getElementById('week-select-message')?.classList.remove('visible');
+            queryEntries(); // refresh calendar with locked week
+        })
+        .catch(err => {
+            console.error('Error submitting week:', err);
+            alert('Failed to mark the week as submitted.');
+        });
+}
+function clearHighlightedWeek() {
+    const box = document.getElementById('active-week-outline');
+    if (box) box.remove();
 }
 function exportWeekToExcel(startStr, endStr) {
     const startDate = new Date(startStr + 'T00:00:00');
@@ -963,7 +1075,7 @@ function exportWeekToExcel(startStr, endStr) {
     const filename = `PTO_Week_${startDate.toISOString().split('T')[0]}_${userName}.xlsx`;
     XLSX.writeFile(workbook, filename);
 }
-
+// ============== ASYNC FUNCTIONS ============== //
 async function queryPTO(userId, visibleDate) {
     return fetch(`/UserPTO/${encodeURIComponent(userId)}`)
         .then(res => res.json())
@@ -1029,7 +1141,7 @@ async function querySubmittedWeeks(userId) {
             submittedWeeks = [];
         });
 }
-
+// ============== BUTTON FUNCTION ============== //
 getEl('upload-entry').addEventListener('click', () => {
     const category = getEl('category-list').value;
     const startDateInput = getEl('entry-start');
@@ -1060,6 +1172,34 @@ getEl('upload-entry').addEventListener('click', () => {
         );
     } else {
         endDate = new Date(startDate); // Default to same as start
+    }
+
+    const role = sessionStorage.getItem('role');
+    if (role !== 'admin') {
+        let nextPayday = null;
+        const today = new Date();
+
+        for (const paydayStr of paydaySet) {
+            const payday = new Date(paydayStr);
+            if (payday >= today) {
+                nextPayday = payday;
+                break;
+            }
+        }
+
+        if (nextPayday) {
+            const weekEnd = new Date(nextPayday);
+            weekEnd.setDate(weekEnd.getDate() - 6); // Saturday before payday week
+
+            const weekStart = new Date(weekEnd);
+            weekStart.setDate(weekEnd.getDate() - 13); // Sunday two weeks before payday week
+
+            // Now compare entry range to pay period
+            if (startDate < weekStart || endDate < weekStart) {
+                alert(`You can only submit entries for dates within the current pay period (${weekStart.toISOString().split('T')[0]} to ${weekEnd.toISOString().split('T')[0]}).`);
+                return;
+            }
+        }
     }
 
     hoursSelected = parseFloat(getEl('hours').value);
@@ -1174,18 +1314,21 @@ getEl('submit-week').addEventListener('click', () => {
         if (isSelectingWeek) {
             submitBtn.textContent = 'Cancel';
             entrySection?.classList.add('hidden');
+            updateWeekSelectMessage();
             message?.classList.add('visible');
         } else {
             submitBtn.textContent = 'Submit Week';
             entrySection?.classList.remove('hidden');
             message?.classList.remove('visible');
+            queryEntries();
         }
 
         generateCalendar();
     } else {
         isSelectingWeek = true;
-        generateCalendar();
+        updateWeekSelectMessage();
         message?.classList.add('visible');
+        generateCalendar();
     }
 });
 getEl('remove-entry').addEventListener('click', async () => {
@@ -1266,7 +1409,11 @@ getEl('remove-entry').addEventListener('click', async () => {
         }
     }
 });
+// ============== CLICK LISTENERS ============== //
 document.addEventListener('DOMContentLoaded', () => {
+    const role = sessionStorage.getItem('role');
+
+    // ==================== DESKTOP CATEGORY ADD/REMOVE ====================
     const addBtn = getEl('add-category-btn');
     const removeBtn = getEl('remove-category-btn');
     const categoryList = getEl('category-list');
@@ -1284,7 +1431,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            // Send to backend to store in database
             fetch('/AddProject', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -1352,14 +1498,35 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
         });
     }
-});
-document.addEventListener('DOMContentLoaded', () => {
+
+    // ==================== MOBILE ROLE-BASED CONTROL ====================
+    if (role !== 'admin') {
+        getEl('add-category-btn-mobile')?.remove();
+        getEl('remove-category-btn-mobile')?.remove();
+
+        const row = getEl('category-row');
+        if (row) {
+            row.classList.add('compact');
+        }
+    }
+
+    // ==================== LOGOUT ====================
     const logoutBtn = getEl('logout-btn');
     if (logoutBtn) {
         logoutBtn.addEventListener('click', () => {
             sessionStorage.removeItem('username');
             sessionStorage.removeItem('role');
             window.location.href = 'login.html';
+        });
+    }
+
+    // ==================== MOBILE MENU TOGGLE ====================
+    const hamburger = document.querySelector('.hamburger');
+    const mobileMenu = document.querySelector('.mobile-menu');
+
+    if (hamburger && mobileMenu) {
+        hamburger.addEventListener('click', () => {
+            mobileMenu.classList.toggle('hidden');
         });
     }
 });
@@ -1383,28 +1550,6 @@ document.addEventListener('click', (e) => {
         document.getElementById('day-popup').classList.add('hidden');
     }
 });
-document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') {
-        if (frozenWeek) {
-            frozenWeek = false;
-            clearHighlightedWeek();
-        }
-        if (isSelectingWeek) {
-            isSelectingWeek = false;
-            generateCalendar();
-        }
-    }
-});
-document.addEventListener('DOMContentLoaded', () => {
-    const hamburger = document.querySelector('.hamburger');
-    const mobileMenu = document.querySelector('.mobile-menu');
-
-    if (hamburger && mobileMenu) {
-        hamburger.addEventListener('click', () => {
-            mobileMenu.classList.toggle('hidden');
-        });
-    }
-});
 document.addEventListener('click', (e) => {
     const popup = document.getElementById('month-popup');
     if (popup && !popup.classList.contains('hidden')) {
@@ -1413,6 +1558,38 @@ document.addEventListener('click', (e) => {
         }
     }
 });
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && isSelectingWeek) {
+        isSelectingWeek = false;
+        generateCalendar();
+    }
+});
+// ============== DOM CONTENT ============== //
+document.addEventListener('DOMContentLoaded', () => {
+    const role = sessionStorage.getItem('role');
+    document.documentElement.style.setProperty('--vh', `${window.innerHeight * 0.01}px`);
+
+    if (role !== 'admin') {
+        document.getElementById('add-category-btn-desktop')?.remove();
+        document.getElementById('remove-category-btn-desktop')?.remove();
+        document.getElementById('add-category-btn-mobile')?.remove();
+        document.getElementById('remove-category-btn-mobile')?.remove();
+    }
+
+    // === Mobile Legend Popup Controls ===
+    const legendToggle = document.getElementById('legend-toggle');
+    const legendPopup = document.getElementById('legend-popup');
+    const legendClose = document.getElementById('legend-close');
+
+    legendToggle?.addEventListener('click', () => {
+        legendPopup?.classList.remove('hidden');
+    });
+
+    legendClose?.addEventListener('click', () => {
+        legendPopup?.classList.add('hidden');
+    });
+});
+// ============== MOBILE SPECIFIC ============== //
 calendarMobile?.addEventListener('touchstart', (e) => {
     touchStartX = e.touches[0].clientX;
     currentSwipeDirection = null;
@@ -1442,11 +1619,18 @@ calendarMobile?.addEventListener('touchend', () => {
     // Trigger fade out via transition
     [glowLeft, glowRight].forEach(el => el.classList.remove('show'));
 });
+// ============== TOGGLE BUTTON ON MOBILE ============== //
 toggleBtn?.addEventListener('click', () => {
     const isNowHidden = entrySection.classList.toggle('hidden');
     caret.textContent = isNowHidden ? '▼' : '▲';
-});
 
+    // Refresh two-week highlight after layout shift
+    const paydayStr = [...paydaySet].find(p => new Date(p) >= new Date());
+    if (paydayStr) {
+        highlightPreviousTwoWeeks(paydayStr);
+    }
+});
+// ============== INITIALIZE ============== //
 populateHoursDropdown();
 queryProjects();
 queryEntries();

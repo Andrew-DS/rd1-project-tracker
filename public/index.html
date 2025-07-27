@@ -27,14 +27,12 @@
     <!-- Mobile entry section -->
     <section class="entry-section">
 
-        <div class="form-row category-row">
-            <label for="category-list-mobile">Category List:</label>
-            <div class="category-actions">
+        <div class="form-row category-row" id="category-row">
+            <label for="category-list-mobile" id="category-label-mobile">Category List:</label>
+            <div class="category-actions" id="category-actions-mobile">
                 <button id="add-category-btn-mobile">+</button>
                 <button id="remove-category-btn-mobile">−</button>
             </div>
-        </div>
-        <div class="form-row">
             <select id="category-list-mobile"></select>
         </div>
 
@@ -121,7 +119,7 @@
         </aside>
 
         <main class="calendar-container">
-            <div id="calendar">
+            <div id="calendar-desktop">
                 <!-- month-navigation and table will be injected here -->
             </div>
         </main>

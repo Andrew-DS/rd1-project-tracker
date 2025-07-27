@@ -1,4 +1,8 @@
-﻿body {
+﻿:root {
+    --vh: 1vh;
+}
+
+body {
     margin: 0;
     font-family: Arial, sans-serif;
     background-color: #f7f7f7;
@@ -143,17 +147,20 @@
     background-size: cover;
 }
 
-#calendar {
+#calendar-desktop {
     width: 80%;
     max-width: 1150px;
-    height: 85%;
+    min-height: 90%;
+    height: auto;
     border: 1px solid #ccc;
     background: white;
-    padding: 0 20px 35px 20px;
+    padding: 0 20px 0px 20px;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
     opacity: 0.95;
     position: relative;
-    overflow: hidden;
+    overflow: visible;
+    display: flex;
+    flex-direction: column;
 }
 
 /* Table Layout */
@@ -162,6 +169,8 @@ table {
     height: 90%;
     table-layout: fixed;
     background-color: #ffffff;
+    border-collapse: collapse;
+    border-spacing: 0;
 }
 
 tr.month-header {
@@ -182,6 +191,8 @@ td {
     overflow-y: auto;
     outline: 1px solid #dfe3e8;
     z-index: 1;
+    padding: 0;
+    border: none;
 }
 
     td.outside-month {
@@ -191,7 +202,7 @@ td {
 
 #today {
     outline: solid 2px #007bff;
-    z-index: 1;
+    z-index: 2;
 }
 
 .calendar-day:hover {
@@ -364,9 +375,11 @@ td {
 .week-outline {
     position: absolute;
     border: 2px solid #85bb65;
-    z-index: 3;
+    z-index: 1;
     pointer-events: none;
     box-sizing: border-box;
+    background: transparent;
+    box-shadow: none;
 }
 
 .week-outline-container {
@@ -390,6 +403,43 @@ td {
         opacity: 1;
     }
 
+#submit-week-desktop {
+    background-color: #007bff;
+}
+
+
+    #submit-week-desktop:hover {
+        background-color: #0056b3;
+    }
+
+
+    #submit-week-desktop.full-width {
+        width: 100%;
+        font-size: 1rem;
+        padding: 0.6rem;
+        border: none;
+        border-radius: 4px;
+        background-color: #007bff;
+        color: white;
+        font-weight: bold;
+        cursor: pointer;
+    }
+
+
+        #submit-week-desktop.full-width:hover {
+            background-color: #0056b3;
+        }
+
+
+#logout-btn-desktop {
+    background-color: silver;
+}
+
+
+    #logout-btn-desktop:hover {
+        background-color: #78706E;
+    }
+
 /* ========================== MOBILE OVERRIDES ========================== */
 .top-bar,
 .mobile-menu,
@@ -406,11 +456,9 @@ td {
         background-color: #007bff;
     }
 
-
         #submit-week-mobile:hover {
             background-color: #0056b3;
         }
-
 
         #submit-week-mobile.full-width {
             width: 100%;
@@ -424,21 +472,17 @@ td {
             cursor: pointer;
         }
 
-
             #submit-week-mobile.full-width:hover {
                 background-color: #0056b3;
             }
-
 
     #logout-btn-mobile {
         background-color: silver;
     }
 
-
         #logout-btn-mobile:hover {
             background-color: #78706E;
         }
-
 
     /* ========== Layout ========== */
     html, body {
@@ -447,6 +491,7 @@ td {
     }
 
     body {
+        height: calc(var(--vh, 1vh) * 100);
         display: flex;
         flex-direction: column;
         min-height: 100dvh;
@@ -501,6 +546,19 @@ td {
             padding: 0;
         }
 
+
+    /* ========== Role-Based Category Layout ========== */
+    .form-row.category-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .category-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+
     /* ========== Entry Section ========== */
     .entry-section {
         height: auto;
@@ -521,8 +579,6 @@ td {
             display: flex;
             flex-wrap: wrap;
             align-items: center;
-            gap: 0.5rem;
-            margin-bottom: 0.75rem;
         }
 
             .entry-section .form-row label {
@@ -580,11 +636,7 @@ td {
         transition: transform 0.2s ease;
     }
 
-    .category-row {
-        justify-content: space-between;
-    }
-
-    /* ========== Submit Week Button (now outside entry-section) ========== */
+    /* ========== Submit Week Button (outside entry-section) ========== */
     .submit-container {
         background-color: #f0f4f8;
         padding: 0rem 1rem 0rem 1rem;
@@ -608,6 +660,24 @@ td {
         }
 
     /* ========== Calendar ========== */
+    #calendar-mobile {
+        flex-grow: 1;
+        min-height: 0;
+        height: auto;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .calendar-container.mobile-calendar {
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        min-height: 0;
+        padding: 2px;
+    }
+
     .calendar-container {
         flex: 1;
         display: flex;
@@ -669,11 +739,17 @@ td {
             background: #d6e9f8;
         }
 
-    #calendar-mobile {
-        flex: 1;
-        height: 100%;
-        width: 100%;
-        max-width: 100%;
+    .calendar-icon.payday,
+    .calendar-icon.deadline {
+        left: 4px !important;
+        top: 2px !important;
+        font-size: 0.7rem !important;
+    }
+
+    .pto-hours,
+    .pto-top {
+        padding: 0 2px !important;
+        font-size: 0.45rem !important;
     }
 
     /* ========== SWIPE GLOW EFFECT ========== */
@@ -745,40 +821,107 @@ td {
     }
 }
 
-
-#submit-week-desktop {
-    background-color: #007bff;
+/* ==== Desktop Calendar Legend ==== */
+.calendar-legend {
+    font-size: 0.75rem;
+    color: #333;
+    justify-content: space-evenly;
+    margin-top: 0.5rem;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
 }
 
-
-    #submit-week-desktop:hover {
-        background-color: #0056b3;
-    }
-
-
-    #submit-week-desktop.full-width {
-        width: 100%;
-        font-size: 1rem;
-        padding: 0.6rem;
-        border: none;
-        border-radius: 4px;
-        background-color: #007bff;
-        color: white;
-        font-weight: bold;
-        cursor: pointer;
-    }
-
-
-        #submit-week-desktop.full-width:hover {
-            background-color: #0056b3;
-        }
-
-
-#logout-btn-desktop {
-    background-color: silver;
+.legend-item,
+.legend-icon {
+    width: 16px;
+    height: 16px;
+    display: inline-block;
+    margin-right: 4px;
+    vertical-align: middle;
 }
 
+.calendar-legend .legend-icon {
+    color: #85bb65;
+}
 
-    #logout-btn-desktop:hover {
-        background-color: #78706E;
+/* Mimic styles */
+.holiday-example {
+    background-image: repeating-linear-gradient(45deg, rgba(0, 128, 0, 0.3), rgba(0, 128, 0, 0.3) 1px, transparent 1px, transparent 6px);
+    border: 2px solid rgba(0, 128, 0, 0.3);
+}
+
+.pto-example {
+    background-image: repeating-linear-gradient(45deg, rgba(75, 0, 130, 0.3), rgba(75, 0, 130, 0.3) 1px, transparent 1px, transparent 6px);
+    border: 2px solid rgba(75, 0, 130, 0.3);
+}
+
+.outline-example {
+    border: 2px solid #85bb65;
+    background: transparent;
+}
+
+/* ==== Mobile Legend Popup ==== */
+.legend-toggle {
+    font-size: 0.75rem;
+    margin: 0.5rem auto;
+    padding: 0.25rem 0.5rem;
+    display: block;
+    border: none;
+    background: #e0e0e0;
+    color: #333;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.legend-popup {
+    position: fixed;
+    top: 0;
+    left: 0;
+    background: rgba(0,0,0,0.5);
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 200;
+}
+
+    .legend-popup.hidden {
+        display: none;
     }
+
+
+/* ==== Legend ==== */
+.legend-content {
+    background: white;
+    padding: 1rem;
+    border-radius: 8px;
+    width: 85%;
+    max-width: 300px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    font-size: 0.9rem;
+}
+
+.legend-close {
+    position: absolute;
+    top: 12px;
+    right: 18px;
+    font-size: 1.25rem;
+    color: #999;
+    cursor: pointer;
+}
+
+.legend-row {
+    display: flex;
+    align-items: center;
+    min-width: 80px;
+    gap: 8px;
+    margin-bottom: 0.5rem;
+}
+
+.legend-box {
+    width: 16px;
+    height: 16px;
+}
