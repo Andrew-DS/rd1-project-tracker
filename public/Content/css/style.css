@@ -225,7 +225,7 @@ td {
 }
 
     .calendar-icon.payday {
-        right: 60%;
+        right: 4px;
         top: 2px;
         text-align: right;
         color: #85bb65;
@@ -233,7 +233,7 @@ td {
     }
 
     .calendar-icon.deadline {
-        right: 60%;
+        right: 4px;
         top: 2px;
         color: crimson;
         font-size: 0.75rem;
@@ -487,14 +487,14 @@ td {
     /* ========== Layout ========== */
     html, body {
         overflow-x: hidden;
-        height: 100%;
+        height: auto;
+        overflow-y: auto;
     }
 
     body {
         height: calc(var(--vh, 1vh) * 100);
         display: flex;
         flex-direction: column;
-        min-height: 100dvh;
     }
 
     .container,
@@ -546,19 +546,6 @@ td {
             padding: 0;
         }
 
-
-    /* ========== Role-Based Category Layout ========== */
-    .form-row.category-row {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-
-    .category-actions {
-        display: flex;
-        gap: 0.5rem;
-    }
-
     /* ========== Entry Section ========== */
     .entry-section {
         height: auto;
@@ -588,6 +575,7 @@ td {
                 font-weight: 500;
                 color: #003278;
                 margin-bottom: 0;
+                white-space: nowrap;
             }
 
             .entry-section .form-row select,
@@ -636,6 +624,38 @@ td {
         transition: transform 0.2s ease;
     }
 
+    /* ========== Role-Based Category Layout ========== */
+    .form-row.category-row {
+        display: flex;
+        flex-wrap: nowrap;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+        .form-row.category-row.admin {
+            flex-wrap: wrap !important; /* admin override */
+        }
+
+    .category-header-wrapper {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        width: 100%;
+    }
+
+    .category-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    #category-list-mobile {
+        flex: 1 1 auto;
+        min-width: 0;
+        width: 100%;
+        min-width: 70%;
+    }
+
     /* ========== Submit Week Button (outside entry-section) ========== */
     .submit-container {
         background-color: #f0f4f8;
@@ -668,7 +688,7 @@ td {
         display: flex;
         flex-direction: column;
     }
-    
+
     .calendar-container.mobile-calendar {
         flex-grow: 1;
         display: flex;
@@ -676,6 +696,7 @@ td {
         height: 100%;
         min-height: 0;
         padding: 2px;
+        overflow-y: visible;
     }
 
     .calendar-container {
@@ -741,8 +762,6 @@ td {
 
     .calendar-icon.payday,
     .calendar-icon.deadline {
-        left: 4px !important;
-        top: 2px !important;
         font-size: 0.7rem !important;
     }
 

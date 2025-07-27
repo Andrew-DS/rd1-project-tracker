@@ -170,33 +170,28 @@ app.post('/Register', async (req, res) => {
     }
 });
 
-app.post('/forgot-password', async (req, res) => {
-    const { email } = req.body;
-    if (!email) return res.status(400).json({ error: 'Email is required' });
+app.post('/ResetPassword', async (req, res) => {
+    const { username, newPassword } = req.body;
+    if (!username || !newPassword) {
+        return res.status(400).json({ error: 'Username and new password are required.' });
+    }
 
     try {
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
         await sql.connect(config);
-        const findUser = await new sql.Request()
-            .input('email', sql.NVarChar, email)
-            .query('SELECT * FROM Users WHERE EmailAddress = @email');
-        if (findUser.recordset.length === 0) return res.json({ message: 'If your email exists, a reset link has been sent.' });
+        const result = await new sql.Request()
+            .input('username', sql.NVarChar, username)
+            .input('password', sql.NVarChar, hashedPassword)
+            .query('UPDATE Users SET Password = @password WHERE Username = @username');
 
-        const token = crypto.randomBytes(32).toString('hex');
-        const expiry = new Date(Date.now() + 3600000); // 1 hour
+        if (result.rowsAffected[0] === 0) {
+            return res.status(404).json({ success: false, error: 'User not found.' });
+        }
 
-        await new sql.Request()
-            .input('email', sql.NVarChar, email)
-            .input('token', sql.NVarChar, token)
-            .input('expiry', sql.DateTime, expiry)
-            .query(`
-                UPDATE Users SET ResetToken = @token, ResetTokenExpiry = @expiry WHERE EmailAddress = @email
-            `);
-
-        console.log(`Send this reset link to ${email}: http://yourapp.com/reset-password?token=${token}`);
-        res.json({ message: 'If your email exists, a reset link has been sent.' });
+        res.json({ success: true, message: 'Password reset successfully.' });
     } catch (err) {
-        console.error('Forgot password error:', err.message);
-        res.status(500).json({ error: 'Internal server error' });
+        console.error('Reset password error:', err.message);
+        res.status(500).json({ success: false, error: 'An error occurred while resetting password.' });
     }
 });
 

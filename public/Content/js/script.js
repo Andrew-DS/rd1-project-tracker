@@ -1576,6 +1576,14 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('remove-category-btn-mobile')?.remove();
     }
 
+    document.querySelectorAll('.category-row').forEach(row => {
+        if (role === 'admin') {
+            row.classList.add('admin');
+        } else {
+            row.classList.remove('admin');
+        }
+    });
+
     // === Mobile Legend Popup Controls ===
     const legendToggle = document.getElementById('legend-toggle');
     const legendPopup = document.getElementById('legend-popup');
