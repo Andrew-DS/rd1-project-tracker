@@ -34,13 +34,17 @@ form.addEventListener('submit', async (e) => {
         const data = await response.json();
 
         if (response.ok && data.success) {
-            sessionStorage.setItem('username', data.user.username);
-            sessionStorage.setItem('role', data.user.role || 'user');
+            const { username, role, email } = data.user || {};
+            if (!username || !email) {
+                setMessage('Login response missing required fields.');
+                throw new Error('Missing username or email in login response');
+            }
 
-            // Small delay so sessionStorage is persisted before redirect
-            setTimeout(() => {
-                window.location.href = 'index.html';
-            }, 100);
+            sessionStorage.setItem('username', username);
+            sessionStorage.setItem('role', role || 'user');
+            sessionStorage.setItem('useremail', String(email).trim().toLowerCase());
+
+            setTimeout(() => { window.location.href = 'index.html'; }, 100);
         } else {
             const msg = data.error || 'Login failed.';
             setMessage(msg);

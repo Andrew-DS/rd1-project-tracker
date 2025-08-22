@@ -941,15 +941,14 @@ function clearHighlightedWeek() {
     const box = document.getElementById('active-week-outline');
     if (box) box.remove();
 }
-function exportWeekToExcel(startStr, endStr) {
+async function exportWeekToExcel(startStr, endStr) {
     const startDate = new Date(startStr + 'T00:00:00');
     const endDate = new Date(endStr + 'T00:00:00');
-    const aoa = [
-        ['Date', 'Description', 'Hours', 'PTO_Submitted', 'PTO_Accrued']
-    ];
+    const aoa = [['Date', 'Description', 'Hours', 'PTO_Submitted', 'PTO_Accrued']];
 
     const current = new Date(startDate);
     const userName = sessionStorage.getItem('username');
+    if (!userName) { alert('Not signed in.'); return; }
 
     while (current <= endDate) {
         const dateStr = current.toISOString().split('T')[0];
@@ -968,27 +967,14 @@ function exportWeekToExcel(startStr, endStr) {
                 ]);
             });
         } else if (submitted > 0) {
-            aoa.push([
-                dateStr,
-                'PTO Request',
-                '',
-                submitted,
-                accrued
-            ]);
+            aoa.push([dateStr, 'PTO Request', '', submitted, accrued]);
         } else if (holidayMap.has(dateStr)) {
-            aoa.push([
-                dateStr,
-                'Holiday',
-                '',     // no hours
-                '',     // no PTO
-                accrued
-            ]);
+            aoa.push([dateStr, 'Holiday', '', '', accrued]);
         }
 
         current.setDate(current.getDate() + 1);
     }
 
-    // --- Totals Section ---
     let totalHours = 0;
     let totalPTO = 0;
     let totalHoliday = 0;
@@ -1008,9 +994,7 @@ function exportWeekToExcel(startStr, endStr) {
         if (!projectTotals.has(project)) projectTotals.set(project, 0);
         projectTotals.set(project, projectTotals.get(project) + hours);
 
-        if (holidayMap.has(row[0])) {
-            totalHoliday += 8;
-        }
+        if (holidayMap.has(row[0])) totalHoliday += 8;
 
         totalHours += hours;
     }
@@ -1026,15 +1010,12 @@ function exportWeekToExcel(startStr, endStr) {
 
     aoa.push([]);
     aoa.push(['', 'Total Hours:', totalHours.toFixed(2)]);
-    if (totalHoliday > 0) {
-        aoa.push(['', 'Total Holiday Hours:', totalHoliday.toFixed(2)]);
-    }
+    if (totalHoliday > 0) aoa.push(['', 'Total Holiday Hours:', totalHoliday.toFixed(2)]);
     aoa.push(['', 'Total PTO Submitted:', totalPTO.toFixed(2)]);
     aoa.push(['', 'Total Submitted Hours:', totalSubmitted.toFixed(2), 'Submitted By:', userName]);
 
     const worksheet = XLSX.utils.aoa_to_sheet(aoa);
 
-    // Styling
     const range = XLSX.utils.decode_range(worksheet['!ref']);
     for (let R = range.s.r; R <= range.e.r; ++R) {
         for (let C = range.s.c; C <= range.e.c; ++C) {
@@ -1043,7 +1024,7 @@ function exportWeekToExcel(startStr, endStr) {
             if (!cell) continue;
 
             const isHeader = R === 0;
-            const isTotal = aoa[R]?.[0] === 'Project Totals' || aoa[R]?.[1]?.includes('Total');
+            const isTotal = aoa[R]?.[0] === 'Project Totals' || (typeof aoa[R]?.[1] === 'string' && aoa[R]?.[1].includes('Total'));
 
             cell.s = {
                 border: {
@@ -1053,27 +1034,38 @@ function exportWeekToExcel(startStr, endStr) {
                     right: { style: "thin", color: { rgb: "000000" } }
                 },
                 alignment: { horizontal: "center", vertical: "center" },
-                font: {
-                    name: "Calibri",
-                    sz: isHeader ? 12 : 11,
-                    bold: isHeader || isTotal
-                }
+                font: { name: "Calibri", sz: isHeader ? 12 : 11, bold: isHeader || isTotal }
             };
         }
     }
 
     worksheet['!cols'] = [
-        { wch: 12 },  // Date
-        { wch: 30 },  // Description
-        { wch: 12 },  // Hours
-        { wch: 15 },  // PTO_Submitted
-        { wch: 20 }   // PTO_Accrued
+        { wch: 12 },
+        { wch: 30 },
+        { wch: 12 },
+        { wch: 15 },
+        { wch: 20 }
     ];
 
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Week Summary');
-    const filename = `PTO_Week_${startDate.toISOString().split('T')[0]}_${userName}.xlsx`;
-    XLSX.writeFile(workbook, filename);
+    const filename = `${startDate.toISOString().split('T')[0]}_${userName}.xlsx`;
+    const arrayBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+
+    const resp = await fetch(`/api/timesheets/upload?filename=${encodeURIComponent(filename)}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/octet-stream',
+            'x-username': userName
+        },
+        body: arrayBuffer
+    });
+
+    if (!resp.ok) {
+        const t = await resp.text().catch(() => '');
+        alert('Upload failed');
+        throw new Error(`upload failed: ${resp.status} ${t}`);
+    }
 }
 // ============== ASYNC FUNCTIONS ============== //
 async function queryPTO(userId, visibleDate) {

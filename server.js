@@ -6,6 +6,93 @@ const sql = require('mssql');
 const path = require('path');
 const config = require('./config/dbConfig.js');
 
+// ========================== GRAPH ========================== //
+require('dotenv').config();
+const GRAPH_BASE = 'https://graph.microsoft.com/v1.0';
+
+let cachedSiteId = null;
+let cachedDriveId = null;
+
+async function getAppToken() {
+    const body = new URLSearchParams();
+    body.set('client_id', process.env.CLIENT_ID);
+    body.set('client_secret', process.env.CLIENT_SECRET);
+    body.set('scope', 'https://graph.microsoft.com/.default');
+    body.set('grant_type', 'client_credentials');
+
+    const resp = await fetch(`https://login.microsoftonline.com/${process.env.TENANT_ID}/oauth2/v2.0/token`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body
+    });
+    if (!resp.ok) throw new Error(`token error ${resp.status}`);
+    const json = await resp.json();
+    return json.access_token;
+}
+
+async function resolveSiteId(token) {
+    if (cachedSiteId) return cachedSiteId;
+    const r = await fetch(`${GRAPH_BASE}/sites/${process.env.SPO_HOSTNAME}:/sites/${process.env.SPO_SITE_PATH}`, {
+        headers: { Authorization: `Bearer ${token}` }
+    });
+    if (!r.ok) throw new Error(`site lookup ${r.status}`);
+    const json = await r.json();
+    cachedSiteId = json.id;
+    return cachedSiteId;
+}
+
+async function resolveDocumentsDriveId(token, siteId) {
+    if (cachedDriveId) return cachedDriveId;
+    const r = await fetch(`${GRAPH_BASE}/sites/${siteId}/drives`, {
+        headers: { Authorization: `Bearer ${token}` }
+    });
+    if (!r.ok) throw new Error(`drives lookup ${r.status}`);
+    const json = await r.json();
+    const doc = (json.value || []).find(d => d.name === 'Documents');
+    if (!doc) throw new Error('Documents library not found');
+    cachedDriveId = doc.id;
+    return cachedDriveId;
+}
+
+async function getUserEmailByUsername(username) {
+    if (!username) throw new Error('Missing username');
+    const result = await queryWithRetry(
+        `SELECT EmailAddress FROM Users WHERE Username = @username`,
+        reqSql => reqSql.input('username', sql.VarChar, username)
+    );
+    if (!result.recordset.length || !result.recordset[0].EmailAddress) {
+        throw new Error(`No EmailAddress found for ${username}`);
+    }
+    return String(result.recordset[0].EmailAddress).trim().toLowerCase();
+}
+
+async function sendMailWithAttachment({ token, fromUser, to, subject, html, filename, buffer }) {
+    const url = `${GRAPH_BASE}/users/${encodeURIComponent(fromUser)}/sendMail`;
+    const message = {
+        subject,
+        body: { contentType: 'HTML', content: html },
+        toRecipients: [{ emailAddress: { address: to } }],
+        attachments: [{
+            '@odata.type': '#microsoft.graph.fileAttachment',
+            name: filename,
+            contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            contentBytes: buffer.toString('base64')
+        }]
+    };
+    const r = await fetch(url, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message, saveToSentItems: true })
+    });
+    const text = await r.text();
+    if (!r.ok) {
+        console.error('sendMail failed:', r.status, text);
+        throw new Error(`sendMail ${r.status}`);
+    }
+    console.log('sendMail ok:', r.status); // usually 202
+}
+
+// ========================== CONFIG ========================== //
 const { queryWithRetry } = require('./config/db');
 
 const app = express();
@@ -13,7 +100,7 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// ========================== HEALTH ==========================
+// ========================== HEALTH ========================== //
 app.get('/health', async (req, res) => {
     try {
         await queryWithRetry('SELECT 1');
@@ -121,7 +208,7 @@ app.post('/Login', async (req, res) => {
             return res.status(401).json({ success: false, error: 'Invalid username or password.' });
         }
 
-        res.json({ success: true, user: { username: user.Username, role: user.Role || 'username' } });
+        res.json({ success: true, user: { username: user.Username, role: user.Role || 'user', email: user.EmailAddress } });
     } catch (err) {
         console.error('Login error:', err.stack || err);
         res.status(500).json({ success: false, error: 'Server error' });
@@ -294,6 +381,68 @@ app.post('/AddUserPTO', async (req, res) => {
     } catch (err) {
         console.error('AddUserPTO error:', err.message);
         res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/timesheets/upload', express.raw({ type: 'application/octet-stream', limit: '20mb' }), async (req, res) => {
+    try {
+        const filename = String(req.query.filename || '').trim();
+        if (!filename) return res.status(400).json({ error: 'filename required' });
+        if (!req.body || !Buffer.isBuffer(req.body)) return res.status(400).json({ error: 'binary body required' });
+
+        const token = await getAppToken();
+
+        const siteId = await resolveSiteId(token);
+        const driveId = await resolveDocumentsDriveId(token, siteId);
+
+        const encodedPath =
+            encodeURIComponent('General') + '/' +
+            encodeURIComponent('Time Sheets') + '/' +
+            encodeURIComponent(filename);
+
+        const uploadUrl = `${GRAPH_BASE}/sites/${siteId}/drives/${driveId}/root:/${encodedPath}:/content`;
+        const putResp = await fetch(uploadUrl, {
+            method: 'PUT',
+            headers: { Authorization: `Bearer ${token}` },
+            body: req.body
+        });
+
+        const text = await putResp.text();
+        if (!putResp.ok) {
+            console.error('Graph upload failed:', putResp.status, text);
+            return res.status(putResp.status).json({ error: 'upload failed' });
+        }
+
+        let item; try { item = JSON.parse(text); } catch { item = { raw: text }; }
+
+        try {
+            const username = String(req.headers['x-username'] || '').trim();
+            let fromUser = process.env.TIMESHEET_FROM;
+            if (username) {
+                try {
+                    fromUser = await getUserEmailByUsername(username);
+                } catch (err) {
+                    console.error('Could not resolve user email, falling back to default:', err);
+                }
+            }
+
+            await sendMailWithAttachment({
+                token,
+                fromUser,
+                to: process.env.TIMESHEET_TO,
+                subject: `Timesheet: ${filename}`,
+                html: `<p>Timesheet uploaded to SharePoint:</p><p><a href="${item.webUrl}">${filename}</a></p>`,
+                filename,
+                buffer: req.body
+            });
+        } catch (e) {
+            console.error('Email send failed:', e);
+        }
+
+        return res.json({ ok: true, id: item.id, name: item.name, webUrl: item.webUrl });
+    } catch (err) {
+        console.error('Upload error:', err);
+        return res.status(500).json({ error: String(err.message || err) });
     }
 });
 
