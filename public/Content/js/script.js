@@ -129,7 +129,8 @@ function generateCalendar() {
                 entryDayMap.get(dateStr).forEach(entry => {
                     const projectColor = projectColorMap.get(entry.Description) || '#ccc';
                     const hours = entry.Hours || 0;
-                    cellHtml += `<div class="calendar-bar" style="background-color: ${projectColor}" data-fulltext="${entry.Description}">${hours}h - ${entry.Description}</div>`;
+                    const afterDash = entry.Description.split(/-(.+)/)[1];
+                    cellHtml += `<div class="calendar-bar" style="background-color: ${projectColor}" data-fulltext="${entry.Description}">${hours}h - ${afterDash}</div>`;
                 });
             }
 
@@ -176,7 +177,8 @@ function generateCalendar() {
             entryDayMap.get(dateStr).forEach(entry => {
                 const projectColor = projectColorMap.get(entry.Description) || '#ccc';
                 const hours = entry.Hours || 0;
-                cellHtml += `<div class="calendar-bar" style="background-color: ${projectColor}" data-fulltext="${entry.Description}">${hours}h - ${entry.Description}</div>`;
+                const afterDash = entry.Description.split(/-(.+)/)[1];
+                cellHtml += `<div class="calendar-bar" style="background-color: ${projectColor}" data-fulltext="${entry.Description}">${hours}h - ${afterDash}</div>`;
             });
         }
 
@@ -233,7 +235,8 @@ function generateCalendar() {
             entryDayMap.get(overflowDateStr).forEach(entry => {
                 const projectColor = projectColorMap.get(entry.Description) || '#ccc';
                 const hours = entry.Hours || 0;
-                cellHtml += `<div class="calendar-bar" style="background-color: ${projectColor}" data-fulltext="${entry.Description}">${hours}h - ${entry.Description}</div>`;
+                const afterDash = entry.Description.split(/-(.+)/)[1];
+                cellHtml += `<div class="calendar-bar" style="background-color: ${projectColor}" data-fulltext="${entry.Description}">${hours}h - ${afterDash}</div>`;
             });
         }
 
@@ -610,8 +613,8 @@ function queryProjects() {
 
             // Always add PTO Request first
             const ptoOption = document.createElement('option');
-            ptoOption.value = 'PTO Request';
-            ptoOption.textContent = 'PTO Request';
+            ptoOption.value = '01-PTO Request';
+            ptoOption.textContent = '01-PTO Request';
             dropdown.appendChild(ptoOption);
 
             data.forEach(project => {
