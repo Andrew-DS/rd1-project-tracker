@@ -66,19 +66,27 @@ async function getUserEmailByUsername(username) {
     return String(result.recordset[0].EmailAddress).trim().toLowerCase();
 }
 
-async function sendMailWithAttachment({ token, fromUser, to, subject, html, filename, buffer }) {
+async function sendMailWithAttachment({ token, fromUser, to, cc, subject, html, filename, buffer, replyTo }) {
     const url = `${GRAPH_BASE}/users/${encodeURIComponent(fromUser)}/sendMail`;
+
+    const toRecipients = String(to).split(',').map(x => x.trim()).filter(Boolean).map(a => ({ emailAddress: { address: a } }));
+    const ccRecipients = cc ? String(cc).split(',').map(x => x.trim()).filter(Boolean).map(a => ({ emailAddress: { address: a } })) : [];
+    const contentBytes = Buffer.isBuffer(buffer) ? buffer.toString('base64') : Buffer.from(buffer).toString('base64');
+
     const message = {
         subject,
         body: { contentType: 'HTML', content: html },
-        toRecipients: [{ emailAddress: { address: to } }],
+        toRecipients,
         attachments: [{
             '@odata.type': '#microsoft.graph.fileAttachment',
             name: filename,
             contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            contentBytes: buffer.toString('base64')
+            contentBytes
         }]
     };
+    if (ccRecipients.length) message.ccRecipients = ccRecipients;
+    if (replyTo) message.replyToRecipients = [{ emailAddress: { address: String(replyTo).trim() } }];
+
     const r = await fetch(url, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
@@ -89,7 +97,7 @@ async function sendMailWithAttachment({ token, fromUser, to, subject, html, file
         console.error('sendMail failed:', r.status, text);
         throw new Error(`sendMail ${r.status}`);
     }
-    console.log('sendMail ok:', r.status); // usually 202
+    console.log('sendMail ok:', r.status);
 }
 
 // ========================== CONFIG ========================== //
@@ -417,18 +425,18 @@ app.post('/api/timesheets/upload', express.raw({ type: 'application/octet-stream
 
         try {
             const username = String(req.headers['x-username'] || '').trim();
-            let fromUser = process.env.TIMESHEET_FROM;
+            let fromUser = '';
             if (username) {
                 try {
                     fromUser = await getUserEmailByUsername(username);
                 } catch (err) {
-                    console.error('Could not resolve user email, falling back to default:', err);
+                    console.error('Could not resolve user email:', err);
                 }
             }
 
             await sendMailWithAttachment({
                 token,
-                from: process.env.TIMESHEET_FROM,
+                fromUser,
                 to: process.env.TIMESHEET_TO,
                 cc: fromUser,
                 subject: `Timesheet: ${filename}`,
