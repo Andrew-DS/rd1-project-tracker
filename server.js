@@ -428,8 +428,9 @@ app.post('/api/timesheets/upload', express.raw({ type: 'application/octet-stream
 
             await sendMailWithAttachment({
                 token,
-                fromUser,
+                from: process.env.TIMESHEET_FROM,
                 to: process.env.TIMESHEET_TO,
+                cc: fromUser,
                 subject: `Timesheet: ${filename}`,
                 html: `<p>Timesheet uploaded to SharePoint:</p><p><a href="${item.webUrl}">${filename}</a></p>`,
                 filename,
