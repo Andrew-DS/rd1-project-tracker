@@ -727,7 +727,7 @@ function highlightPreviousTwoWeeks(endDateStr) {
     const lastRight = Math.max(...cells.map(c => c.offsetLeft + c.offsetWidth));
     const height = cells[13].offsetTop - cells[0].offsetTop;
 
-    const cellPaddingOffset = 2;
+    const cellPaddingOffset = -2;
     const outline = document.createElement('div');
     outline.id = 'active-week-outline';
     outline.className = 'week-outline pay-period';
@@ -735,7 +735,7 @@ function highlightPreviousTwoWeeks(endDateStr) {
     outline.style.top = `${firstTop - cellPaddingOffset}px`;
     outline.style.left = `${firstLeft - cellPaddingOffset}px`;
     outline.style.width = `${lastRight - firstLeft + cellPaddingOffset * 2}px`;
-    outline.style.height = `${height + cellPaddingOffset}px`;
+    outline.style.height = `${height + cellPaddingOffset * 2}px`;
 
     calendar.appendChild(outline);
 }
@@ -1216,7 +1216,6 @@ getEl('upload-entry').addEventListener('click', () => {
         return;
     }
 
-    console.log(category);
     if (category === '01-PTO Request') {
         const userId = sessionStorage.getItem('username');
 
@@ -1374,7 +1373,7 @@ getEl('remove-entry').addEventListener('click', async () => {
                 }
             }
 
-            generateCalendar();
+            queryEntries();
         } catch (err) {
             console.error('Error removing entry:', err);
             alert('Failed to remove entry from the database.');
