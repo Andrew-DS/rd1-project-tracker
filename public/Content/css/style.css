@@ -83,7 +83,7 @@ body {
     }
 
 .submitted-week {
-    background-color: #cbd5e0;
+    background-color: #9ca3af;
     pointer-events: none;
     opacity: 0.6;
 }
@@ -290,8 +290,7 @@ td {
 
 /* HOLIDAY Styling */
 .holiday-day {
-    background-image: repeating-linear-gradient(45deg, rgba(0, 128, 0, 0.3), rgba(0, 128, 0, 0.3) 1px, transparent 1px, transparent 6px);
-    outline: 2px solid rgba(0, 128, 0, 0.3);
+    background-color: rgba(0, 53, 148, 0.15);
 }
 
     .holiday-day .pto-hours {
@@ -313,8 +312,7 @@ td {
 }
 
 .pto-day {
-    background-image: repeating-linear-gradient(45deg, rgba(75, 0, 130, 0.3), rgba(75, 0, 130, 0.3) 1px, transparent 1px, transparent 6px);
-    outline: 2px solid rgba(75, 0, 130, 0.3);
+    background-color: rgba(75, 0, 130, 0.15);
 }
 
 .pto-hours {
@@ -374,12 +372,15 @@ td {
 /* Week Outline Box */
 .week-outline {
     position: absolute;
-    border: 2px solid #85bb65;
     z-index: 1;
     pointer-events: none;
     box-sizing: border-box;
-    background: transparent;
-    box-shadow: none;
+    background-size: auto;
+}
+
+.pay-period {
+    outline: 2px solid #85bb65;
+    background-image: repeating-linear-gradient(45deg, rgba(133,187,101,0.25) 0, rgba(133,187,101,0.25) 1px, transparent 2px, transparent 12px);
 }
 
 .week-outline-container {
@@ -863,22 +864,6 @@ td {
 
 .calendar-legend .legend-icon {
     color: #85bb65;
-}
-
-/* Mimic styles */
-.holiday-example {
-    background-image: repeating-linear-gradient(45deg, rgba(0, 128, 0, 0.3), rgba(0, 128, 0, 0.3) 1px, transparent 1px, transparent 6px);
-    border: 2px solid rgba(0, 128, 0, 0.3);
-}
-
-.pto-example {
-    background-image: repeating-linear-gradient(45deg, rgba(75, 0, 130, 0.3), rgba(75, 0, 130, 0.3) 1px, transparent 1px, transparent 6px);
-    border: 2px solid rgba(75, 0, 130, 0.3);
-}
-
-.outline-example {
-    border: 2px solid #85bb65;
-    background: transparent;
 }
 
 /* ==== Mobile Legend Popup ==== */

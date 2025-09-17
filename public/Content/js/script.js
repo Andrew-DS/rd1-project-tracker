@@ -129,7 +129,8 @@ function generateCalendar() {
                 entryDayMap.get(dateStr).forEach(entry => {
                     const projectColor = projectColorMap.get(entry.Description) || '#ccc';
                     const hours = entry.Hours || 0;
-                    const afterDash = entry.Description.split(/-(.+)/)[1];
+                    const desc = String(entry.Description || '').trim();
+                    const afterDash = desc.indexOf('-') > 0 ? desc.slice(desc.indexOf('-') + 1).trim() : desc;
                     cellHtml += `<div class="calendar-bar" style="background-color: ${projectColor}" data-fulltext="${entry.Description}">${hours}h - ${afterDash}</div>`;
                 });
             }
@@ -177,13 +178,14 @@ function generateCalendar() {
             entryDayMap.get(dateStr).forEach(entry => {
                 const projectColor = projectColorMap.get(entry.Description) || '#ccc';
                 const hours = entry.Hours || 0;
-                const afterDash = entry.Description.split(/-(.+)/)[1];
+                const desc = String(entry.Description || '').trim();
+                const afterDash = desc.indexOf('-') > 0 ? desc.slice(desc.indexOf('-') + 1).trim() : desc;
                 cellHtml += `<div class="calendar-bar" style="background-color: ${projectColor}" data-fulltext="${entry.Description}">${hours}h - ${afterDash}</div>`;
             });
         }
 
         if (paydaySet.has(dateStr)) {
-            cellHtml += `<div class="calendar-icon payday" title="Payday - Click to review past 2 weeks">$</div>`;
+            cellHtml += `<div class="calendar-icon payday" title="Payday - Click to review past 2 weeks">$$$</div>`;
         }
 
         if (deadlineSet.has(dateStr)) {
@@ -235,13 +237,14 @@ function generateCalendar() {
             entryDayMap.get(overflowDateStr).forEach(entry => {
                 const projectColor = projectColorMap.get(entry.Description) || '#ccc';
                 const hours = entry.Hours || 0;
-                const afterDash = entry.Description.split(/-(.+)/)[1];
+                const desc = String(entry.Description || '').trim();
+                const afterDash = desc.indexOf('-') > 0 ? desc.slice(desc.indexOf('-') + 1).trim() : desc;
                 cellHtml += `<div class="calendar-bar" style="background-color: ${projectColor}" data-fulltext="${entry.Description}">${hours}h - ${afterDash}</div>`;
             });
         }
 
         if (paydaySet.has(overflowDateStr)) {
-            cellHtml += `<div class="calendar-icon payday" title="Payday - Click to review past 2 weeks">$</div>`;
+            cellHtml += `<div class="calendar-icon payday" title="Payday - Click to review past 2 weeks">$$$</div>`;
         }
 
         if (deadlineSet.has(overflowDateStr)) {
@@ -259,9 +262,9 @@ function generateCalendar() {
 
     html += `
     <div class="calendar-legend">
-        <div class="legend-row"><div class="legend-box holiday-example"></div>Holiday</div>
-        <div class="legend-row"><div class="legend-box pto-example"></div>PTO</div>
-        <div class="legend-row"><div class="legend-box outline-example"></div>Pay Period</div>
+        <div class="legend-row"><div class="legend-box holiday-day"></div>Holiday</div>
+        <div class="legend-row"><div class="legend-box pto-day"></div>PTO</div>
+        <div class="legend-row"><div class="legend-box pay-period"></div>Pay Period</div>
         <div class="legend-row"><div class="legend-icon">⏰</div>Last Day to Submit</div>
         <div class="legend-row"><div class="legend-icon">$</div>Payday</div>
     </div>
@@ -298,7 +301,7 @@ function generateCalendar() {
 
     if (matchedPayday) {
         const deadline = new Date(matchedPayday);
-        deadline.setDate(deadline.getDate() - 3); // Tuesday before payday
+        deadline.setDate(deadline.getDate() - 4); // Monday before payday
 
         const isTodayDeadline = todayIso === deadline.toISOString().split('T')[0];
 
@@ -388,7 +391,7 @@ function generateCalendar() {
                 }
 
                 const deadline = new Date(realPayday);
-                deadline.setDate(deadline.getDate() - 3); // Tuesday before payday
+                deadline.setDate(deadline.getDate() - 4); // Monday before payday
 
                 const today = new Date();
                 today.setHours(0, 0, 0, 0);
@@ -471,7 +474,7 @@ function calculatePayPeriods(viewYear, viewMonth) {
         paydaySet.add(paydayStr);
 
         const deadline = new Date(payday);
-        deadline.setDate(payday.getDate() - 3); // Tuesday of that week
+        deadline.setDate(payday.getDate() - 4); // Monday of that week
         const deadlineStr = deadline.toISOString().split('T')[0];
         deadlineSet.add(deadlineStr);
 
@@ -630,8 +633,8 @@ function queryProjects() {
             });
 
             // Ensure PTO Request always has a consistent color
-            if (!projectColorMap.has('PTO Request')) {
-                projectColorMap.set('PTO Request', '#6a1b9a');
+            if (!projectColorMap.has('01-PTO Request')) {
+                projectColorMap.set('01-PTO Request', '#6a1b9a');
             }
         })
         .catch(error => {
@@ -727,7 +730,7 @@ function highlightPreviousTwoWeeks(endDateStr) {
     const cellPaddingOffset = 2;
     const outline = document.createElement('div');
     outline.id = 'active-week-outline';
-    outline.className = 'week-outline';
+    outline.className = 'week-outline pay-period';
     outline.style.position = 'absolute';
     outline.style.top = `${firstTop - cellPaddingOffset}px`;
     outline.style.left = `${firstLeft - cellPaddingOffset}px`;
@@ -898,7 +901,7 @@ function updateWeekSelectMessage() {
     }
 
     const deadlineDate = new Date(nextPayday);
-    deadlineDate.setDate(deadlineDate.getDate() - 3); // Tuesday
+    deadlineDate.setDate(deadlineDate.getDate() - 4); // Monday
 
     const weekEnd = new Date(nextPayday);
     const weekStart = new Date(nextPayday);
@@ -964,13 +967,13 @@ async function exportWeekToExcel(startStr, endStr) {
                 aoa.push([
                     dateStr,
                     entry.Description,
-                    entry.Description !== 'PTO Request' ? entry.Hours || '' : '',
-                    entry.Description === 'PTO Request' ? submitted : '',
+                    entry.Description !== '01-PTO Request' ? entry.Hours || '' : '',
+                    entry.Description === '01-PTO Request' ? submitted : '',
                     accrued
                 ]);
             });
         } else if (submitted > 0) {
-            aoa.push([dateStr, 'PTO Request', '', submitted, accrued]);
+            aoa.push([dateStr, '01-PTO Request', '', submitted, accrued]);
         } else if (holidayMap.has(dateStr)) {
             aoa.push([dateStr, 'Holiday', '', '', accrued]);
         }
@@ -989,7 +992,7 @@ async function exportWeekToExcel(startStr, endStr) {
         const hours = parseFloat(row[2]) || 0;
         const ptoSubmitted = parseFloat(row[3]) || 0;
 
-        if (project === 'PTO Request') {
+        if (project === '01-PTO Request') {
             totalPTO += ptoSubmitted;
             continue;
         }
@@ -1213,7 +1216,8 @@ getEl('upload-entry').addEventListener('click', () => {
         return;
     }
 
-    if (category === 'PTO Request') {
+    console.log(category);
+    if (category === '01-PTO Request') {
         const userId = sessionStorage.getItem('username');
 
         // Parse and normalize dates
@@ -1256,15 +1260,26 @@ getEl('upload-entry').addEventListener('click', () => {
             })
         ))
             .then(responses => {
-                if (responses.some(r => !r.ok)) throw new Error('One or more uploads failed');
-                return Promise.all(responses.map(r => r.json()));
+                if (responses.some(r => !r.ok)) throw new Error('One or more PTO uploads failed');
+                return Promise.all(requests.map(payload => {
+                    return fetch('/AddProjectEntry', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            Description: selectedCategory,
+                            Hours: hoursSelected,
+                            StartDate: payload.Date,
+                            EndDate: payload.Date,
+                            UserID: userId
+                        })
+                    });
+                }));
             })
             .then(() => {
                 // alert('PTO requests submitted successfully!');
                 queryEntries();
             })
             .catch(err => {
-                console.error('PTO Upload error:', err);
                 alert('Failed to upload PTO requests.');
             });
     } else {
@@ -1463,7 +1478,7 @@ document.addEventListener('DOMContentLoaded', () => {
         removeBtn.addEventListener('click', () => {
             const selected = categoryList.value;
 
-            if (!selected || selected === 'PTO Request') {
+            if (!selected || selected === '01-PTO Request') {
                 alert('This category cannot be removed.');
                 return;
             }
