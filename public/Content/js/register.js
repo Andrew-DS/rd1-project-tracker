@@ -21,14 +21,18 @@
     lastNameInput.addEventListener('input', generateUsername);
 
     const form = document.getElementById('register-form');
+
     if (form) {
+        const btn = form.querySelector('button[type="submit"]');
+        const spinner = document.querySelector('#register-spinner, #spinner');
+
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
 
-            const firstName = firstNameInput.value.trim();
-            const lastName = lastNameInput.value.trim();
+            const firstName = document.getElementById('firstName').value.trim();
+            const lastName = document.getElementById('lastName').value.trim();
             const email = document.getElementById('email').value.trim();
-            const username = usernameInput.value.trim();
+            const username = document.getElementById('username').value.trim();
             const password = document.getElementById('password').value;
 
             if (!firstName || !lastName || !email || !username || !password) {
@@ -36,50 +40,63 @@
                 return;
             }
 
-            // Check for existing username/email
-            const checkRes = await fetch('/CheckUserExists', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, email })
-            });
+            if (btn) btn.disabled = true;
+            if (spinner) spinner.classList.remove('hidden');
+            if (typeof setMessage === 'function') setMessage('');
 
-            const checkData = await checkRes.json();
-            if (checkData.exists) {
-                alert(`The ${checkData.conflict} is already in use. Please choose a different one.`);
-                return;
-            }
+            const warmupTimer = setTimeout(() => {
+                if (typeof setMessage === 'function') setMessage('Warming up the database… this can take a few seconds.');
+            }, 2000);
 
             try {
+                const checkRes = await fetch('/CheckUserExists', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, email })
+                });
+                const checkData = await checkRes.json();
+                if (checkData.exists) {
+                    alert(`The ${checkData.conflict} is already in use. Please choose a different one.`);
+                    return;
+                }
+
                 const res = await fetch('/Register', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ username, password, firstName, lastName, email })
                 });
-
                 const data = await res.json();
-                if (!data.success) {
+                if (!res.ok || !data.success) {
                     alert(data.message || 'Registration failed.');
                     return;
                 }
 
-                // Auto-login
                 const loginRes = await fetch('/Login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ username, password })
-
                 });
-
                 const loginData = await loginRes.json();
-                if (loginData.success) {
-                    window.location.href = 'index.html';
+
+                if (loginRes.ok && loginData.success) {
+                    const u = loginData.user || {};
+                    if (u.username && u.email) {
+                        sessionStorage.setItem('username', u.username);
+                        sessionStorage.setItem('role', u.role || 'user');
+                        sessionStorage.setItem('useremail', String(u.email).trim().toLowerCase());
+                    }
+                    setTimeout(() => { window.location.href = 'index.html'; }, 100);
                 } else {
                     alert('Registration successful but auto-login failed. Please login manually.');
                 }
-
             } catch (err) {
                 console.error('Registration error:', err);
+                if (typeof setMessage === 'function') setMessage('An error occurred. Please try again.');
                 alert('Error occurred during registration.');
+            } finally {
+                clearTimeout(warmupTimer);
+                if (btn) btn.disabled = false;
+                if (spinner) spinner.classList.add('hidden');
             }
         });
     } else {
