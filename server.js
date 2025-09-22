@@ -253,7 +253,7 @@ app.post('/Register', async (req, res) => {
             .input('email', sql.NVarChar, email)
             .input('firstName', sql.NVarChar, firstName)
             .input('lastName', sql.NVarChar, lastName)
-            .input('role', sqlNVarChar, 'user')
+            .input('role', sql.NVarChar, 'user')
             .query(`
                 INSERT INTO Users (Username, Password, EmailAddress, FirstName, LastName, Role)
                 VALUES (@username, @hashedPassword, @email, @firstName, @lastName, @role)
