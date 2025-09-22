@@ -6,11 +6,8 @@
     function generateUsername() {
         const rawFirst = firstNameInput.value.trim().toLowerCase();
         const rawLast = lastNameInput.value.trim().toLowerCase();
-
-        // Remove special characters before slicing
         const cleanFirst = rawFirst.replace(/[^a-z0-9]/g, '');
         const cleanLast = rawLast.replace(/[^a-z0-9]/g, '');
-
         if (cleanFirst && cleanLast) {
             const baseUsername = cleanLast.slice(0, 6) + cleanFirst.slice(0, 2);
             usernameInput.value = baseUsername;
@@ -24,13 +21,12 @@
 
     if (form) {
         const btn = form.querySelector('button[type="submit"]');
-        const spinner = document.querySelector('#register-spinner, #spinner');
 
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
 
-            const firstName = document.getElementById('firstName').value.trim();
-            const lastName = document.getElementById('lastName').value.trim();
+            const firstName = document.getElementById('first-name').value.trim();
+            const lastName = document.getElementById('last-name').value.trim();
             const email = document.getElementById('email').value.trim();
             const username = document.getElementById('username').value.trim();
             const password = document.getElementById('password').value;
@@ -40,12 +36,16 @@
                 return;
             }
 
-            if (btn) btn.disabled = true;
-            if (spinner) spinner.classList.remove('hidden');
-            if (typeof setMessage === 'function') setMessage('');
+            const originalBtnText = btn ? btn.textContent : '';
+            if (btn) {
+                btn.disabled = true;
+                btn.textContent = 'Registering...';
+            }
 
             const warmupTimer = setTimeout(() => {
-                if (typeof setMessage === 'function') setMessage('Warming up the database… this can take a few seconds.');
+                if (btn && btn.textContent === 'Registering...') {
+                    btn.textContent = 'Registering... (warming up database)';
+                }
             }, 2000);
 
             try {
@@ -80,34 +80,33 @@
 
                 if (loginRes.ok && loginData.success) {
                     const u = loginData.user || {};
-                    if (u.username && u.email) {
-                        sessionStorage.setItem('username', u.username);
-                        sessionStorage.setItem('role', u.role || 'user');
-                        sessionStorage.setItem('useremail', String(u.email).trim().toLowerCase());
-                    }
+                    if (u.username) sessionStorage.setItem('username', u.username);
+                    sessionStorage.setItem('role', u.role || 'user');
+                    if (u.email) sessionStorage.setItem('useremail', String(u.email).trim().toLowerCase());
                     setTimeout(() => { window.location.href = 'index.html'; }, 100);
                 } else {
                     alert('Registration successful but auto-login failed. Please login manually.');
                 }
             } catch (err) {
                 console.error('Registration error:', err);
-                if (typeof setMessage === 'function') setMessage('An error occurred. Please try again.');
                 alert('Error occurred during registration.');
             } finally {
                 clearTimeout(warmupTimer);
-                if (btn) btn.disabled = false;
-                if (spinner) spinner.classList.add('hidden');
+                if (btn) {
+                    btn.disabled = false;
+                    btn.textContent = originalBtnText;
+                }
             }
         });
     } else {
         console.error('register-form not found in the DOM.');
     }
 });
-document.getElementById('toggle-password').addEventListener('click', () => {
+
+document.getElementById('toggle-password')?.addEventListener('click', () => {
     const pwd = document.getElementById('password');
     const toggle = document.getElementById('toggle-password');
-
     const isVisible = pwd.type === 'text';
     pwd.type = isVisible ? 'password' : 'text';
-    toggle.textContent = isVisible ? '👁️' : '🙈'; // optional: change icon
+    toggle.textContent = isVisible ? '👁️' : '🙈';
 });
