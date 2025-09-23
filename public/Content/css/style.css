@@ -393,15 +393,10 @@ td {
     text-align: center;
     font-weight: bold;
     color: #4a4a4a;
-    opacity: 0;
     transition: opacity 0.3s ease;
     pointer-events: none;
     z-index: 1;
 }
-
-    .week-select-message.visible {
-        opacity: 1;
-    }
 
 #submit-week-desktop {
     background-color: #007bff;

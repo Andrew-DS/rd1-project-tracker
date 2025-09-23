@@ -20,6 +20,7 @@ let entryDayMap = new Map();
 let ptoMap = new Map();
 let holidayMap = new Map();
 let rangeStartDate = null;
+let lastPaydayDateStr = null;
 
 // ============== WINDOW CONSTANTS ============== //
 let isSelectingWeek = false;
@@ -28,17 +29,12 @@ let submittedWeeks = [];
 let isMobile = window.innerWidth <= 768;
 
 window.addEventListener('resize', () => {
-    document.documentElement.style.setProperty('--vh', `${window.innerHeight * 0.01}px`);
-
-    const newIsMobile = window.innerWidth <= 768;
-
-    if (newIsMobile !== isMobile) {
-        isMobile = newIsMobile;
-
-        populateHoursDropdown();
-        queryProjects();
-        queryEntries();
-    }
+    const d = document.getElementById('submit-week-desktop');
+    const m = document.getElementById('submit-week-mobile');
+    const active = isMobile ? m : d;
+    const inactive = isMobile ? d : m;
+    if (active) active.textContent = isSelectingWeek ? 'Cancel' : 'Submit Pay Period';
+    if (inactive) inactive.textContent = 'Submit Pay Period';
 });
 function getEl(idBase) {
     return document.getElementById(`${idBase}-${isMobile ? 'mobile' : 'desktop'}`);
@@ -279,72 +275,23 @@ function generateCalendar() {
         }).join('')}
         </div>
     `;
+        updateGlowHeightToTable();
+        if (!calendar.dataset.swipeWired) {
+            enableSwipeNavigation(calendar);
+            calendar.dataset.swipeWired = '1';
+        }
     }
 
     calendar.innerHTML = html;
 
-    const weekMessage = document.getElementById('week-select-message');
-    if (!weekMessage) return;
-
-    const todayIso = new Date().toISOString().split('T')[0];
-    let matchedPayday = null;
-
-    // Find next payday after today
-    for (const paydayStr of paydaySet) {
-        const payday = new Date(paydayStr);
-        const today = new Date();
-        if (payday >= today) {
-            matchedPayday = payday;
-            break;
-        }
-    }
-
-    if (matchedPayday) {
-        const deadline = new Date(matchedPayday);
-        deadline.setDate(deadline.getDate() - 4); // Monday before payday
-
-        const isTodayDeadline = todayIso === deadline.toISOString().split('T')[0];
-
-        const weekEnd = new Date(matchedPayday);
-        weekEnd.setDate(weekEnd.getDate() - 6); // End of pay period
-
-        const weekStart = new Date(weekEnd);
-        weekStart.setDate(weekEnd.getDate() - 13); // Beginning of pay period
-
-        const startStr = weekStart.toISOString().split('T')[0];
-        const endStr = weekEnd.toISOString().split('T')[0];
-
-        if (isTodayDeadline) {
-            weekMessage.innerHTML = `<span style="color: crimson; font-weight: bold;">Today is the last day to submit for ${startStr} to ${endStr}</span>`;
-        } else {
-            weekMessage.textContent = `Current pay period: ${startStr} to ${endStr}`;
-        }
-
-        weekMessage.classList.add('visible');
-    }
-
-    let lastTap = 0;
-    document.querySelectorAll('.calendar-day').forEach(cell => {
-        cell.addEventListener('click', (e) => {
-            if (!isMobile) return;
-
-            const now = new Date().getTime();
-            const delta = now - lastTap;
-            lastTap = now;
-
-            if (delta < 400) {
-                const dateStr = cell.getAttribute('data-date');
-                if (dateStr) openEntryPopup(dateStr);
-            }
-        });
-    });
     document.querySelectorAll('.calendar-icon.payday').forEach(icon => {
         icon.addEventListener('mouseenter', () => {
             if (frozenWeek) return;
             const cell = icon.closest('td');
             if (!cell) return;
             const dateStr = cell.getAttribute('data-date');
-            highlightPreviousTwoWeeks(dateStr);
+            lastPaydayDateStr = dateStr;
+            highlightPayPeriod(dateStr);
         });
 
         icon.addEventListener('mouseleave', () => {
@@ -355,7 +302,8 @@ function generateCalendar() {
             const cell = icon.closest('td');
             if (!cell) return;
             const dateStr = cell.getAttribute('data-date');
-            highlightPreviousTwoWeeks(dateStr);
+            lastPaydayDateStr = dateStr;
+            highlightPayPeriod(dateStr);
             frozenWeek = true;
         });
     });
@@ -391,7 +339,7 @@ function generateCalendar() {
                 }
 
                 const deadline = new Date(realPayday);
-                deadline.setDate(deadline.getDate() - 4); // Monday before payday
+                deadline.setDate(deadline.getDate() - 3); // Tuesday before payday
 
                 const today = new Date();
                 today.setHours(0, 0, 0, 0);
@@ -418,8 +366,20 @@ function generateCalendar() {
         });
     }
 
+    updateWeekSelectMessage(isSelectingWeek);
     attachMonthSwitchHandlers();
     attachCalendarDayListeners();
+
+    if (!lastPaydayDateStr) {
+        const today = new Date();
+        for (const d of paydaySet) {
+            const t = new Date(d);
+            if (t >= today) { lastPaydayDateStr = d; break; }
+        }
+    }
+    if (lastPaydayDateStr) {
+        highlightPayPeriod(lastPaydayDateStr);
+    }
 
     if (isMobile) {
         const monthHeader = document.querySelector('.month-header');
@@ -474,7 +434,7 @@ function calculatePayPeriods(viewYear, viewMonth) {
         paydaySet.add(paydayStr);
 
         const deadline = new Date(payday);
-        deadline.setDate(payday.getDate() - 4); // Monday of that week
+        deadline.setDate(payday.getDate() - 3); // Tuesday of that week
         const deadlineStr = deadline.toISOString().split('T')[0];
         deadlineSet.add(deadlineStr);
 
@@ -526,10 +486,22 @@ function attachMonthSwitchHandlers() {
     document.getElementById('next-month').addEventListener('click', goToNextMonth);
 }
 function attachCalendarDayListeners() {
+    let lastTap = 0;
+
     document.querySelectorAll('.calendar-day').forEach(cell => {
         cell.addEventListener('click', (e) => {
             const selectedDateStr = cell.getAttribute('data-date');
             if (!selectedDateStr) return;
+
+            if (isMobile) {
+                const now = Date.now();
+                const delta = now - lastTap;
+                lastTap = now;
+                if (delta < 400) {
+                    openEntryPopup(selectedDateStr);
+                    return;
+                }
+            }
 
             if (isSelectingWeek) {
                 const parentRow = cell.closest('tr.week-highlight');
@@ -545,21 +517,18 @@ function attachCalendarDayListeners() {
                 exportWeekToExcel(startOfWeek, endOfWeek);
 
                 isSelectingWeek = false;
-                getEl('week-select-message')?.classList.remove('visible');
                 return;
             }
 
             const clickedDate = new Date(selectedDateStr);
 
             if (e.shiftKey && rangeStartDate) {
-                // Shift+click: highlight range
                 const [start, end] = rangeStartDate <= clickedDate
                     ? [rangeStartDate, clickedDate]
                     : [clickedDate, rangeStartDate];
 
-                document.querySelectorAll('.calendar-day.selected').forEach(el =>
-                    el.classList.remove('selected')
-                );
+                document.querySelectorAll('.calendar-day.selected')
+                    .forEach(el => el.classList.remove('selected'));
 
                 const temp = new Date(start);
                 while (temp <= end) {
@@ -578,10 +547,8 @@ function attachCalendarDayListeners() {
 
                 rangeStartDate = null;
             } else {
-                // Normal single-click: reset + select
-                document.querySelectorAll('.calendar-day.selected').forEach(el =>
-                    el.classList.remove('selected')
-                );
+                document.querySelectorAll('.calendar-day.selected')
+                    .forEach(el => el.classList.remove('selected'));
 
                 cell.classList.add('selected');
                 rangeStartDate = clickedDate;
@@ -616,8 +583,8 @@ function queryProjects() {
 
             // Always add PTO Request first
             const ptoOption = document.createElement('option');
-            ptoOption.value = '01-PTO Request';
-            ptoOption.textContent = '01-PTO Request';
+            ptoOption.value = '01-PTO';
+            ptoOption.textContent = '01-PTO';
             dropdown.appendChild(ptoOption);
 
             data.forEach(project => {
@@ -633,8 +600,8 @@ function queryProjects() {
             });
 
             // Ensure PTO Request always has a consistent color
-            if (!projectColorMap.has('01-PTO Request')) {
-                projectColorMap.set('01-PTO Request', '#6a1b9a');
+            if (!projectColorMap.has('01-PTO')) {
+                projectColorMap.set('01-PTO', '#6a1b9a');
             }
         })
         .catch(error => {
@@ -643,12 +610,11 @@ function queryProjects() {
         });
 }
 function getColorForProject(description) {
-    if (!projectColorMap[description]) {
-        // Cycle through colors to avoid duplicates
-        const index = Object.keys(projectColorMap).length % colorPalette.length;
-        projectColorMap[description] = colorPalette[index];
+    if (!projectColorMap.has(description)) {
+        const index = projectColorMap.size % colorPalette.length;
+        projectColorMap.set(description, colorPalette[index]);
     }
-    return projectColorMap[description];
+    return projectColorMap.get(description);
 }
 function queryEntries() {
     const userId = sessionStorage.getItem('username');
@@ -678,7 +644,7 @@ function queryEntries() {
             if (nextPayday) {
                 const paydayStr = nextPayday.toISOString().split('T')[0];
                 frozenWeek = true;
-                highlightPreviousTwoWeeks(paydayStr);
+                highlightPayPeriod(paydayStr);
             }
         })
         .catch(error => {
@@ -699,7 +665,7 @@ function highlightWeekFromCell(cell) {
         if (targetCell) targetCell.classList.add('week-highlight');
     }
 }
-function highlightPreviousTwoWeeks(endDateStr) {
+function highlightPayPeriod(endDateStr) {
     clearHighlightedWeek();
 
     const calendar = getEl('calendar');
@@ -879,41 +845,48 @@ function enableSwipeNavigation(calendar) {
     });
 }
 // ============== SUBMIT FUNCTIONS ============== //
-function updateWeekSelectMessage() {
-    const message = document.getElementById('week-select-message');
-    if (!message) return;
+function updateWeekSelectMessage(isSelectingWeek) {
+    const el = document.getElementById('week-select-message');
+    if (!el) return;
 
-    const currentDateStr = new Date().toISOString().split('T')[0];
-    const currentDate = new Date();
-    let nextPayday = null;
-
-    for (const paydayStr of paydaySet) {
-        const payday = new Date(paydayStr);
-        if (payday >= currentDate) {
-            nextPayday = payday;
-            break;
-        }
-    }
-
-    if (!nextPayday) {
-        message.textContent = 'Click any day to select a week for export. Press ESC to cancel.';
+    if (isSelectingWeek) {
+        el.textContent = 'Click any day to select a week for export. Press ESC to cancel.';
         return;
     }
 
-    const deadlineDate = new Date(nextPayday);
-    deadlineDate.setDate(deadlineDate.getDate() - 4); // Monday
+    const todayIso = new Date().toISOString().split('T')[0];
+    let matchedPayday = null;
+    for (const paydayStr of paydaySet) {
+        const payday = new Date(paydayStr);
+        const today = new Date();
+        if (payday >= today) {
+            matchedPayday = payday;
+            break;
+        }
+    }
+    if (!matchedPayday) {
+        el.textContent = '';
+        return;
+    }
 
-    const weekEnd = new Date(nextPayday);
-    const weekStart = new Date(nextPayday);
+    const deadline = new Date(matchedPayday);
+    deadline.setDate(deadline.getDate() - 3);
+
+    const isTodayDeadline = todayIso === deadline.toISOString().split('T')[0];
+
+    const weekEnd = new Date(matchedPayday);
+    weekEnd.setDate(weekEnd.getDate() - 6);
+
+    const weekStart = new Date(weekEnd);
     weekStart.setDate(weekEnd.getDate() - 13);
 
     const startStr = weekStart.toISOString().split('T')[0];
     const endStr = weekEnd.toISOString().split('T')[0];
 
-    if (currentDateStr === deadlineDate.toISOString().split('T')[0]) {
-        message.innerHTML = `<span style="color: crimson; font-weight: bold;">Today is the last day to submit for ${startStr} to ${endStr}</span>`;
+    if (isTodayDeadline) {
+        el.innerHTML = `<span style="color: crimson; font-weight: bold;">Today is the last day to submit for ${startStr} to ${endStr}</span>`;
     } else {
-        message.textContent = 'Click any day to select a week for export. Press ESC to cancel.';
+        el.textContent = `Current pay period: ${startStr} to ${endStr}`;
     }
 }
 function isWeekSubmitted(dateStr) {
@@ -935,8 +908,7 @@ function handleWeekSubmit(userId, startStr, endStr) {
         .then(res => res.json())
         .then(() => {
             isSelectingWeek = false;
-            document.getElementById('week-select-message')?.classList.remove('visible');
-            queryEntries(); // refresh calendar with locked week
+            queryEntries();
         })
         .catch(err => {
             console.error('Error submitting week:', err);
@@ -967,13 +939,13 @@ async function exportWeekToExcel(startStr, endStr) {
                 aoa.push([
                     dateStr,
                     entry.Description,
-                    entry.Description !== '01-PTO Request' ? entry.Hours || '' : '',
-                    entry.Description === '01-PTO Request' ? submitted : '',
+                    entry.Description !== '01-PTO' ? entry.Hours || '' : '',
+                    entry.Description === '01-PTO' ? submitted : '',
                     accrued
                 ]);
             });
         } else if (submitted > 0) {
-            aoa.push([dateStr, '01-PTO Request', '', submitted, accrued]);
+            aoa.push([dateStr, '01-PTO', '', submitted, accrued]);
         } else if (holidayMap.has(dateStr)) {
             aoa.push([dateStr, 'Holiday', '', '', accrued]);
         }
@@ -992,7 +964,7 @@ async function exportWeekToExcel(startStr, endStr) {
         const hours = parseFloat(row[2]) || 0;
         const ptoSubmitted = parseFloat(row[3]) || 0;
 
-        if (project === '01-PTO Request') {
+        if (project === '01-PTO') {
             totalPTO += ptoSubmitted;
             continue;
         }
@@ -1139,128 +1111,158 @@ async function querySubmittedWeeks(userId) {
             submittedWeeks = [];
         });
 }
-// ============== BUTTON FUNCTION ============== //
-getEl('upload-entry').addEventListener('click', () => {
-    const category = getEl('category-list').value;
-    const startDateInput = getEl('entry-start');
-    const endDateInput = getEl('entry-end');
-    let hoursSelected = getEl('hours');
+// ============== CLICK LISTENERS ============== //
+document.addEventListener('click', async (e) => {
+    const t = e.target;
+    if (!(t instanceof Element)) return;
+    const id = t.id;
 
-    if (!startDateInput.value) {
-        alert('Please select a start date.');
-        return;
-    }
+    if (id === 'submit-week-desktop' || id === 'submit-week-mobile') {
+        if (typeof isSubmittingWeek === 'undefined') window.isSubmittingWeek = false;
+        if (isSubmittingWeek) return;
 
-    const selectedCategory = category;
-
-    const startParts = startDateInput.value.split('-');
-    const startDate = new Date(
-        parseInt(startParts[0]),
-        parseInt(startParts[1]) - 1,
-        parseInt(startParts[2])
-    );
-
-    let endDate;
-    if (endDateInput.value) {
-        const endParts = endDateInput.value.split('-');
-        endDate = new Date(
-            parseInt(endParts[0]),
-            parseInt(endParts[1]) - 1,
-            parseInt(endParts[2])
-        );
-    } else {
-        endDate = new Date(startDate); // Default to same as start
-    }
-
-    const role = sessionStorage.getItem('role');
-    if (role !== 'admin') {
-        let nextPayday = null;
-        const today = new Date();
-
-        for (const paydayStr of paydaySet) {
-            const payday = new Date(paydayStr);
-            if (payday >= today) {
-                nextPayday = payday;
-                break;
-            }
-        }
-
-        if (nextPayday) {
-            const weekEnd = new Date(nextPayday);
-            weekEnd.setDate(weekEnd.getDate() - 6); // Saturday before payday week
-
-            const weekStart = new Date(weekEnd);
-            weekStart.setDate(weekEnd.getDate() - 13); // Sunday two weeks before payday week
-
-            // Now compare entry range to pay period
-            if (startDate < weekStart || endDate < weekStart) {
-                alert(`You can only submit entries for dates within the current pay period (${weekStart.toISOString().split('T')[0]} to ${weekEnd.toISOString().split('T')[0]}).`);
-                return;
-            }
-        }
-    }
-
-    hoursSelected = parseFloat(getEl('hours').value);
-    if (isNaN(hoursSelected) || hoursSelected <= 0) {
-        alert('Please select a valid number of hours.');
-        return;
-    }
-
-    if (!selectedCategory || !startDate || !endDate) {
-        alert('Please complete all required fields.');
-        return;
-    }
-
-    if (endDate < startDate) {
-        alert('End date cannot be before start date.');
-        return;
-    }
-
-    if (category === '01-PTO Request') {
         const userId = sessionStorage.getItem('username');
+        const role = sessionStorage.getItem('role') || 'user';
+        const todayIso = new Date().toISOString().split('T')[0];
 
-        // Parse and normalize dates
-        let current = new Date(startDate);
-        current.setHours(0, 0, 0, 0);
-        let endDay = new Date(endDate);
-        endDay.setHours(0, 0, 0, 0);
+        let matchedPayday = null;
+        for (const paydayStr of paydaySet) {
+            const d = new Date(paydayStr);
+            const today = new Date();
+            if (d >= today) { matchedPayday = d; break; }
+        }
+        if (!matchedPayday) { alert('No upcoming payday found.'); return; }
 
-        // Prepare a list of payloads
-        const requests = [];
-        const accrualRate = 0.3287;          // 120h / 365d
-        let runningAccrued = ptoMap.get(current.toISOString().split('T')[0])?.accrued || 0;
+        const deadline = new Date(matchedPayday);
+        deadline.setDate(deadline.getDate() - 4);
+        const isPastDeadline = todayIso > deadline.toISOString().split('T')[0] && role !== 'admin';
+        if (isPastDeadline) { alert('The submission deadline has passed.'); return; }
 
-        while (current <= endDay) {
-            const day = current.getDay();
-            if (day !== 0 && day !== 6) {    // skip Sun/Sat
-                const dateStr = current.toISOString().split('T')[0];
+        const periodEnd = new Date(matchedPayday);
+        periodEnd.setDate(periodEnd.getDate() - 6);
+        const periodStart = new Date(periodEnd);
+        periodStart.setDate(periodEnd.getDate() - 13);
 
-                // 1) Use the current runningAccrued for this date
-                requests.push({
-                    UserID: userId,
-                    Date: dateStr,
-                    PTOaccrued: parseFloat(runningAccrued.toFixed(2)),
-                    PTOsubmitted: hoursSelected
-                });
+        const startStr = periodStart.toISOString().split('T')[0];
+        const endStr = periodEnd.toISOString().split('T')[0];
 
-                // 2) Subtract the PTO hours, then add daily accrual for the next day
-                runningAccrued = runningAccrued - hoursSelected + accrualRate;
-            }
+        if (!confirm(`Submit the entire pay period ${startStr} to ${endStr}?`)) return;
+        handleWeekSubmit(userId, startStr, endStr);
+        return;
+    }
 
-            current.setDate(current.getDate() + 1);
+    if (id === 'upload-entry-desktop' || id === 'upload-entry-mobile' || id === 'upload-entry') {
+        const category = getEl('category-list').value;
+        const startDateInput = getEl('entry-start');
+        const endDateInput = getEl('entry-end');
+        let hoursSelected = getEl('hours');
+
+        if (!startDateInput.value) {
+            alert('Please select a start date.');
+            return;
         }
 
-        // Send them all in parallel
-        Promise.all(requests.map(payload =>
-            fetch('/AddUserPTO', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            })
-        ))
-            .then(responses => {
-                if (responses.some(r => !r.ok)) throw new Error('One or more PTO uploads failed');
-                return Promise.all(requests.map(payload => {
+        const selectedCategory = category;
+
+        const startParts = startDateInput.value.split('-');
+        const startDate = new Date(
+            parseInt(startParts[0]),
+            parseInt(startParts[1]) - 1,
+            parseInt(startParts[2])
+        );
+
+        let endDate;
+        if (endDateInput.value) {
+            const endParts = endDateInput.value.split('-');
+            endDate = new Date(
+                parseInt(endParts[0]),
+                parseInt(endParts[1]) - 1,
+                parseInt(endParts[2])
+            );
+        } else {
+            endDate = new Date(startDate);
+        }
+
+        const role = sessionStorage.getItem('role');
+        if (role !== 'admin') {
+            let nextPayday = null;
+            const today = new Date();
+
+            for (const paydayStr of paydaySet) {
+                const payday = new Date(paydayStr);
+                if (payday >= today) {
+                    nextPayday = payday;
+                    break;
+                }
+            }
+
+            if (nextPayday) {
+                const weekEnd = new Date(nextPayday);
+                weekEnd.setDate(weekEnd.getDate() - 6);
+
+                const weekStart = new Date(weekEnd);
+                weekStart.setDate(weekEnd.getDate() - 13);
+
+                if (startDate < weekStart || endDate < weekStart) {
+                    alert(`You can only submit entries for dates within the current pay period (${weekStart.toISOString().split('T')[0]} to ${weekEnd.toISOString().split('T')[0]}).`);
+                    return;
+                }
+            }
+        }
+
+        hoursSelected = parseFloat(getEl('hours').value);
+        if (isNaN(hoursSelected) || hoursSelected <= 0) {
+            alert('Please select a valid number of hours.');
+            return;
+        }
+
+        if (!selectedCategory || !startDate || !endDate) {
+            alert('Please complete all required fields.');
+            return;
+        }
+
+        if (endDate < startDate) {
+            alert('End date cannot be before start date.');
+            return;
+        }
+
+        if (category === '01-PTO') {
+            const userId = sessionStorage.getItem('username');
+            let current = new Date(startDate);
+            current.setHours(0, 0, 0, 0);
+            let endDay = new Date(endDate);
+            endDay.setHours(0, 0, 0, 0);
+
+            const requests = [];
+            const accrualRate = 0.3287;
+            let runningAccrued = ptoMap.get(current.toISOString().split('T')[0])?.accrued || 0;
+
+            while (current <= endDay) {
+                const day = current.getDay();
+                if (day !== 0 && day !== 6) {
+                    const dateStr = current.toISOString().split('T')[0];
+                    requests.push({
+                        UserID: userId,
+                        Date: dateStr,
+                        PTOaccrued: parseFloat(runningAccrued.toFixed(2)),
+                        PTOsubmitted: hoursSelected
+                    });
+                    runningAccrued = runningAccrued - hoursSelected + accrualRate;
+                }
+                current.setDate(current.getDate() + 1);
+            }
+
+            try {
+                const ptoRes = await Promise.all(requests.map(payload =>
+                    fetch('/AddUserPTO', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    })
+                ));
+                if (ptoRes.some(r => !r.ok)) throw new Error('One or more PTO uploads failed');
+
+                await Promise.all(requests.map(payload => {
                     return fetch('/AddProjectEntry', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -1273,152 +1275,107 @@ getEl('upload-entry').addEventListener('click', () => {
                         })
                     });
                 }));
-            })
-            .then(() => {
-                // alert('PTO requests submitted successfully!');
+
                 queryEntries();
-            })
-            .catch(err => {
+            } catch {
                 alert('Failed to upload PTO requests.');
-            });
-    } else {
-        // Submit as regular project entry
-        const userId = sessionStorage.getItem('username');
-
-        const payload = {
-            Description: selectedCategory,
-            Hours: hoursSelected,
-            StartDate: startDate,
-            EndDate: endDate,
-            UserID: userId
-        };
-
-        fetch('/AddProjectEntry', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        })
-            .then(res => {
-                if (!res.ok) throw new Error('Upload failed');
-                return res.json();
-            })
-            .then(result => {
-                // alert('Entry uploaded successfully!');
-                queryEntries();
-            })
-            .catch(err => {
-                console.error('Upload error:', err);
-                alert('Failed to upload project entry.');
-            });
-    }
-});
-getEl('submit-week').addEventListener('click', () => {
-    const submitBtn = getEl('submit-week');
-    const entrySection = document.querySelector('.entry-section');
-    const message = document.getElementById('week-select-message');
-
-    if (isMobile) {
-        isSelectingWeek = !isSelectingWeek;
-
-        if (isSelectingWeek) {
-            submitBtn.textContent = 'Cancel';
-            entrySection?.classList.add('hidden');
-            updateWeekSelectMessage();
-            message?.classList.add('visible');
+            }
         } else {
-            submitBtn.textContent = 'Submit Week';
-            entrySection?.classList.remove('hidden');
-            message?.classList.remove('visible');
-            queryEntries();
-        }
+            const userId = sessionStorage.getItem('username');
+            const payload = {
+                Description: selectedCategory,
+                Hours: hoursSelected,
+                StartDate: startDate,
+                EndDate: endDate,
+                UserID: userId
+            };
 
-        generateCalendar();
-    } else {
-        isSelectingWeek = true;
-        updateWeekSelectMessage();
-        message?.classList.add('visible');
-        generateCalendar();
-    }
-});
-getEl('remove-entry').addEventListener('click', async () => {
-    const selectedBar = document.querySelector('.calendar-bar.selected');
-
-    if (selectedBar) {
-        // --- Project entry removal (unchanged) ---
-        const parentTd = selectedBar.closest('td');
-        const dateStr = parentTd.getAttribute('data-date');
-        const description = selectedBar.getAttribute('data-fulltext');
-        const text = selectedBar.textContent || '';
-        const hoursMatch = text.match(/(\d+(?:\.\d+)?)h/);
-        const hours = hoursMatch ? parseFloat(hoursMatch[1]) : 0;
-
-        try {
-            const res = await fetch('/RemoveEntry', {
-                method: 'DELETE',
+            fetch('/AddProjectEntry', {
+                method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ Description: description, Date: dateStr, Hours: hours })
-            });
+                body: JSON.stringify(payload)
+            })
+                .then(res => {
+                    if (!res.ok) throw new Error('Upload failed');
+                    return res.json();
+                })
+                .then(() => {
+                    queryEntries();
+                })
+                .catch(() => {
+                    alert('Failed to upload project entry.');
+                });
+        }
+        return;
+    }
 
-            const result = await res.json();
-            if (!result.success) {
-                throw new Error(result.error || 'Failed to remove from server.');
-            }
+    if (id === 'remove-entry-desktop' || id === 'remove-entry-mobile' || id === 'remove-entry') {
+        const selectedBar = document.querySelector('.calendar-bar.selected');
 
-            if (entryDayMap.has(dateStr)) {
-                const updatedEntries = entryDayMap.get(dateStr).filter(e => e.Description !== description);
-                if (updatedEntries.length === 0) {
-                    entryDayMap.delete(dateStr);
-                } else {
-                    entryDayMap.set(dateStr, updatedEntries);
+        if (selectedBar) {
+            const parentTd = selectedBar.closest('td');
+            const dateStr = parentTd.getAttribute('data-date');
+            const description = selectedBar.getAttribute('data-fulltext');
+            const text = selectedBar.textContent || '';
+            const hoursMatch = text.match(/(\d+(?:\.\d+)?)h/);
+            const hours = hoursMatch ? parseFloat(hoursMatch[1]) : 0;
+
+            try {
+                const res = await fetch('/RemoveEntry', {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ Description: description, Date: dateStr, Hours: hours })
+                });
+                const result = await res.json();
+                if (!result.success) throw new Error();
+
+                if (entryDayMap.has(dateStr)) {
+                    const updatedEntries = entryDayMap.get(dateStr).filter(e => e.Description !== description);
+                    if (updatedEntries.length === 0) {
+                        entryDayMap.delete(dateStr);
+                    } else {
+                        entryDayMap.set(dateStr, updatedEntries);
+                    }
                 }
+                queryEntries();
+            } catch {
+                alert('Failed to remove entry from the database.');
+            }
+        } else {
+            const selectedDay = document.querySelector('.calendar-day.selected');
+            if (!selectedDay) {
+                alert('Please select a project entry or a day with PTO to remove.');
+                return;
             }
 
-            queryEntries();
-        } catch (err) {
-            console.error('Error removing entry:', err);
-            alert('Failed to remove entry from the database.');
-        }
+            const dateStr = selectedDay.getAttribute('data-date');
+            const userId = sessionStorage.getItem('username');
 
-    } else {
-        // --- PTO removal if no project bar is selected ---
-        const selectedDay = document.querySelector('.calendar-day.selected');
-        if (!selectedDay) {
-            alert('Please select a project entry or a day with PTO to remove.');
-            return;
-        }
-
-        const dateStr = selectedDay.getAttribute('data-date');
-        const userId = sessionStorage.getItem('username');
-
-        if (!ptoMap.has(dateStr) || parseFloat(ptoMap.get(dateStr).submitted) === 0) {
-            alert('No PTO entry exists for the selected day.');
-            return;
-        }
-
-        try {
-            const res = await fetch('/DeleteUserPTO', {
-                method: 'DELETE',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ UserID: userId, Date: dateStr })
-            });
-
-            const result = await res.json();
-            if (!result.success) {
-                throw new Error(result.error || 'Failed to remove PTO.');
+            if (!ptoMap.has(dateStr) || parseFloat(ptoMap.get(dateStr).submitted) === 0) {
+                alert('No PTO entry exists for the selected day.');
+                return;
             }
 
-            if (ptoMap.has(dateStr)) {
-                ptoMap.get(dateStr).submitted = 0;
+            try {
+                const res = await fetch('/DeleteUserPTO', {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ UserID: userId, Date: dateStr })
+                });
+                const result = await res.json();
+                if (!result.success) throw new Error();
+
+                if (ptoMap.has(dateStr)) {
+                    ptoMap.get(dateStr).submitted = 0;
+                }
+                queryEntries();
+                alert('PTO entry removed successfully.');
+            } catch {
+                alert('Failed to remove PTO from the database.');
             }
-            queryEntries();
-            alert('PTO entry removed successfully.');
-        } catch (err) {
-            console.error('Error removing PTO:', err);
-            alert('Failed to remove PTO from the database.');
         }
     }
 });
-// ============== CLICK LISTENERS ============== //
 document.addEventListener('DOMContentLoaded', () => {
     const role = sessionStorage.getItem('role');
 
@@ -1477,7 +1434,7 @@ document.addEventListener('DOMContentLoaded', () => {
         removeBtn.addEventListener('click', () => {
             const selected = categoryList.value;
 
-            if (!selected || selected === '01-PTO Request') {
+            if (!selected || selected === '01-PTO') {
                 alert('This category cannot be removed.');
                 return;
             }
@@ -1568,11 +1525,20 @@ document.addEventListener('click', (e) => {
     }
 });
 document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && isSelectingWeek) {
-        isSelectingWeek = false;
-        generateCalendar();
-    }
+    if (e.key !== 'Escape' || !isSelectingWeek) return;
+    isSelectingWeek = false;
+
+    const d = document.getElementById('submit-week-desktop');
+    const m = document.getElementById('submit-week-mobile');
+    if (d) d.textContent = 'Submit Pay Period';
+    if (m) m.textContent = 'Submit Pay Period';
+
+    const section = document.querySelector('.entry-section');
+    if (section && section.classList) section.classList.remove('hidden');
+
+    generateCalendar();
 });
+
 // ============== DOM CONTENT ============== //
 document.addEventListener('DOMContentLoaded', () => {
     const role = sessionStorage.getItem('role');
@@ -1644,7 +1610,7 @@ toggleBtn?.addEventListener('click', () => {
     // Refresh two-week highlight after layout shift
     const paydayStr = [...paydaySet].find(p => new Date(p) >= new Date());
     if (paydayStr) {
-        highlightPreviousTwoWeeks(paydayStr);
+        highlightPayPeriod(paydayStr);
     }
 });
 // ============== INITIALIZE ============== //
