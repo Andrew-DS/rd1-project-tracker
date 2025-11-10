@@ -357,22 +357,25 @@ function generateCalendar() {
         enableSwipeNavigation(calendar);
     }
 }
+function formatLocalYMD(d) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+}
 function calculatePayPeriods(viewYear, viewMonth) {
     paydaySet.clear();
     deadlineSet.clear();
 
-    // Find the first Friday in 2025 that aligns with the July 18 payday cycle
-    let payday = new Date(2025, 0, 1); // Jan 1, 2025
-    while (payday.getDay() !== 5) { // find first Friday
+    let payday = new Date(2025, 0, 1);
+    while (payday.getDay() !== 5) {
         payday.setDate(payday.getDate() + 1);
     }
 
-    // Step through every 14 days until we hit or pass the anchor
     while (payday < PAYDAY_ANCHOR) {
         payday.setDate(payday.getDate() + PAYDAY_INTERVAL);
     }
 
-    // Step back in 14-day intervals until before Jan 1, 2025
     while (payday.getFullYear() === 2025 && payday > new Date(2025, 0, 1)) {
         const test = new Date(payday);
         test.setDate(test.getDate() - PAYDAY_INTERVAL);
@@ -380,15 +383,14 @@ function calculatePayPeriods(viewYear, viewMonth) {
         else break;
     }
 
-    // Now payday is the first valid one in 2025 — generate forward
     const endOfMonth = new Date(viewYear, viewMonth + 2, 0);
     while (payday <= endOfMonth) {
-        const paydayStr = payday.toISOString().split('T')[0];
+        const paydayStr = formatLocalYMD(payday);
         paydaySet.add(paydayStr);
 
         const deadline = new Date(payday);
-        deadline.setDate(payday.getDate() - 3); // Tuesday of that week
-        const deadlineStr = deadline.toISOString().split('T')[0];
+        deadline.setDate(payday.getDate() - 3);
+        const deadlineStr = formatLocalYMD(deadline);
         deadlineSet.add(deadlineStr);
 
         payday.setDate(payday.getDate() + PAYDAY_INTERVAL);
@@ -1055,26 +1057,38 @@ document.addEventListener('click', async (e) => {
         const role = sessionStorage.getItem('role') || 'user';
         const todayIso = new Date().toISOString().split('T')[0];
 
-        let matchedPayday = null;
+        let matchedPaydayStr = null;
         for (const paydayStr of paydaySet) {
-            const d = new Date(paydayStr);
-            const today = new Date();
-            if (d >= today) { matchedPayday = d; break; }
+            if (paydayStr >= todayIso) {
+                matchedPaydayStr = paydayStr;
+                break;
+            }
         }
-        if (!matchedPayday) { alert('No upcoming payday found.'); return; }
+        if (!matchedPaydayStr) {
+            alert('No upcoming payday found.');
+            return;
+        }
+
+        const matchedPayday = new Date(matchedPaydayStr + 'T00:00:00');
 
         const deadline = new Date(matchedPayday);
         deadline.setDate(deadline.getDate() - 4);
-        const isPastDeadline = todayIso > deadline.toISOString().split('T')[0] && role !== 'admin';
-        if (isPastDeadline) { alert('The submission deadline has passed.'); return; }
+        const deadlineIso = formatLocalYMD(deadline);
+
+        const isPastDeadline = todayIso > deadlineIso && role !== 'admin';
+        if (isPastDeadline) {
+            alert('The submission deadline has passed.');
+            return;
+        }
 
         const periodEnd = new Date(matchedPayday);
         periodEnd.setDate(periodEnd.getDate() - 6);
-        const periodStart = new Date(periodEnd);
-        periodStart.setDate(periodEnd.getDate() - 13);
 
-        const startStr = periodStart.toISOString().split('T')[0];
-        const endStr = periodEnd.toISOString().split('T')[0];
+        const periodStart = new Date(periodEnd);
+        periodStart.setDate(periodStart.getDate() - 13);
+
+        const startStr = formatLocalYMD(periodStart);
+        const endStr = formatLocalYMD(periodEnd);
 
         if (!confirm(`Submit the entire pay period ${startStr} to ${endStr}?`)) return;
         handleWeekSubmit(userId, startStr, endStr);

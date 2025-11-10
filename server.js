@@ -107,6 +107,16 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
+if (process.env.NODE_ENV === 'production') {
+    app.use((req, res, next) => {
+        const host = req.headers.host || '';
+        if (!host.toLowerCase().startsWith('timesheet.rd-1nt.com')) {
+            const url = `https://timesheet.rd-1nt.com${req.originalUrl || ''}`;
+            return res.redirect(301, url);
+        }
+        next();
+    });
+}
 
 // ========================== HEALTH ========================== //
 app.get('/health', async (req, res) => {
